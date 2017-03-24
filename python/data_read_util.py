@@ -73,6 +73,7 @@ def read_whole_gray_dataset(episode_list, img_dict):
     return ds
 
 def minibatch_from_whole_dataset(dataset, episode_list, action_file_dict, reward_file_dict, stacked_img_num, frame_stride, batch_size):
+    # TODO: complete comments here
     """
         get a random minibatch from dataset in memory
         dataset : dictionary
