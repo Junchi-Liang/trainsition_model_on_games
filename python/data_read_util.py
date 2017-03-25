@@ -61,7 +61,7 @@ def read_whole_gray_dataset(episode_list, img_dict):
         return ds
         ds : dictionary
         ds - the whole image set, indexed by elements in episode_list. Each element in this dictionary is a 4d tensor.
-             in another word, ds[e][i][m][n][c] is pixel[n, m] in channel c from i-th image of episode e
+             in another word, ds[e][i, m, n, c] is pixel[n, m] in channel c from i-th image of episode e
     """
     ds = {}
     cnt = 0
@@ -80,7 +80,7 @@ def minibatch_from_whole_dataset(dataset, episode_list, action_file_dict, reward
         dataset - the whole image set. Generally, you would like to get it from read_whole_gray_dataset. 
                   It is assumed that this dictionary is indexed by elements in episode_list, 
                   while each element in this dictionary is a 4d tensor.
-                  dataset[e][i][m][n][c] should be pixel [n, m] in channel c from i-th image of episode e.
+                  dataset[e][i, m, n, c] should be pixel [n, m] in channel c from i-th image of episode e.
                   you can get it from read_whole_gray_dataset
         episode_list : list
         episode_list - list of episodes, which should be indices of img_dict. You can get it from get_file_list
@@ -97,6 +97,26 @@ def minibatch_from_whole_dataset(dataset, episode_list, action_file_dict, reward
                        if you want to get 1 frame of every 2 frames, set it to 2.
         batch_size : int
         batch_size - size of the batch
+        return [batch, selected_index]
+        selected_index : list
+        selected_index - selected frame indices. each element in this list is a list with size of 2.
+                         selected_index[i][0] is episode of the i-th selected images while selected_index[i][1] is the index of starting frame,
+                         so we sample from selected_index[i][1], and then selected_index[i][1] - frame_stride, selected_index[i][1] - 2 * frame_stride, ...
+        batch : list
+        batch = [stacked_img_tensor, reward_tensor, action_tensor, next_img_tensor]
+        stacked_img_tensor : numpy.ndarray
+        stacked_img_tensor - stacked input image, with the same order as selected_index. 
+                             4d tensor, its shape is [batch_size][m][n][c * stacked_img_num] where [m, n] is the size of the image,
+                             the number of channels of images is c.
+                             i.e. stacked_img_tensor[0, x, y, 0] is the pixel[x, y] from the first channel of the first image set (each set is stacked images),
+                             stacked_img_tensor[1, a, b, stacked_img_num * c - 1] is pixel [a, b] from the last channel of the oldest image in second image set.
+       reward_tensor : tuple
+       reward_tensor - 1d list, shape (batch_size,). the collection of rewards, in the same order as selected_index
+       action_tensor : tuple
+       action_tensor - 1d list, shape (batch_size,). the collection of actions, in the same order as selected_index
+       next_img_tensor : numpy.ndarray
+       next_img_tensor - collection of next frames.
+                         4d tensor, it shape is (batch_size, m, n, c) where [m, n] is the size of the image, c is the number of channels of images.
     """
     selected_index = []
     for _ in range(0, batch_size):
