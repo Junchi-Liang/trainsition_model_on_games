@@ -11,6 +11,7 @@ import numpy.random
 # assumption 2: images in each episode are named by their order, index starts from 0
 # assumption 3: rewards and actions are stored as file separately in each episode directory.
 # namely, we look act.log for actions and reward.log for rewards in each episode directory
+# assumption 4: rewards and actions are separated by new line ('\n') in these files
 
 def get_file_list(input_dir, img_format):
     """ 
@@ -73,7 +74,6 @@ def read_whole_gray_dataset(episode_list, img_dict):
     return ds
 
 def minibatch_from_whole_dataset(dataset, episode_list, action_file_dict, reward_file_dict, stacked_img_num, frame_stride, batch_size):
-    # TODO: complete comments here
     """
         get a random minibatch from dataset in memory
         dataset : dictionary
@@ -156,10 +156,84 @@ def minibatch_from_whole_dataset(dataset, episode_list, action_file_dict, reward
     batch = [stacked_img_tensor, reward_tensor, action_tensor, next_img_tensor]
     return [batch, selected_index]
 
-
-
-
-
-
+def minibatch_from_disk(episode_list, img_dict, action_file_dict, reward_file_dict, stacked_img_num, frame_stride, batch_size):
+    """
+        get a minibatch from disk
+        episode_list : list
+        episode_list - list of episodes, which should be indices of img_dict. You can get it from get_file_list
+        img_dict : dictionary
+        img_dict - collection of file name of images, complete file name, indexed by elements in episode_list.
+                   File names in each episode are sorted. you can get it from get_file_list
+        action_file_dict : dictionary
+        action_file_dict - collection of file name for action files, complete file name, indexed by elements in episode_list.
+                           you can get it from get_file_list
+        reward_file_dict : dictionary
+        reward_file_dict - collection of file name for action files, complete file name, indexed by elements in episode_list.
+                           you can get it from get_file_list
+        stacked_img_num : int
+        stacked_img_num - number of stacked image for one frame. it should be larger than one, as it includes starting frame.
+        frame_stride : int
+        frame_stride - stride for sampling frames. if you want to stack every frames, set it to 1.
+                       if you want to get 1 frame of every 2 frames, set it to 2.
+        batch_size : int
+        batch_size - size of the batch
+        return [batch, selected_index]
+        selected_index : list
+        selected_index - selected frame indices. each element in this list is a list with size of 2.
+                         selected_index[i][0] is episode of the i-th selected images while selected_index[i][1] is the index of starting frame,
+                         so we sample from selected_index[i][1], and then selected_index[i][1] - frame_stride, selected_index[i][1] - 2 * frame_stride, ...
+        batch : list
+        batch = [stacked_img_tensor, reward_tensor, action_tensor, next_img_tensor]
+        stacked_img_tensor : numpy.ndarray
+        stacked_img_tensor - stacked input image, with the same order as selected_index. 
+                             4d tensor, its shape is [batch_size][m][n][c * stacked_img_num] where [m, n] is the size of the image,
+                             the number of channels of images is c.
+                             i.e. stacked_img_tensor[0, x, y, 0] is the pixel[x, y] from the first channel of the first image set (each set is stacked images),
+                             stacked_img_tensor[1, a, b, stacked_img_num * c - 1] is pixel [a, b] from the last channel of the oldest image in second image set.
+       reward_tensor : tuple
+       reward_tensor - 1d list, shape (batch_size,). the collection of rewards, in the same order as selected_index
+       action_tensor : tuple
+       action_tensor - 1d list, shape (batch_size,). the collection of actions, in the same order as selected_index
+       next_img_tensor : numpy.ndarray
+       next_img_tensor - collection of next frames.
+                         4d tensor, it shape is (batch_size, m, n, c) where [m, n] is the size of the image, c is the number of channels of images.
+    """
+    selected_index = []
+    for _ in range(0, batch_size):
+        episode = numpy.random.choice(episode_list)
+        episode_size = len(img_dict[episode])
+        selected_index.append([episode, numpy.random.choice(range(frame_stride * (stacked_img_num - 1), episode_size - 1))])
+    selected_index.sort(key=lambda t: t[0])   
+    previous_episode = ''
+    stacked_img_list = []
+    next_img_list = []
+    rewards_cur_episode = []
+    actions_cur_episode = []
+    reward_column = []
+    action_column = []
+    for index_now in selected_index:
+        episode, frame = index_now
+        if (episode != previous_episode):
+            reward_file = open(reward_file_dict[episode], 'r')
+            rewards_raw = reward_file.read().split('\n')
+            rewards_cur_episode = [float(r) for r in rewards_raw if len(r) > 0]
+            action_file = open(action_file_dict[episode], 'r')
+            actions_raw = action_file.read().split()
+            actions_cur_episode = [float(a) for a in actions_raw if len(a) > 0]
+            previous_episode = episode
+        reward_column.append(rewards_cur_episode[frame])
+        action_column.append(actions_cur_episode[frame])
+        next_img_list.append(get_gray_img_tensor(img_dict[episode][frame + 1]))
+        previous_img_list = [get_gray_img_tensor(img_dict[episode][frame - frame_cnt * frame_stride]) for frame_cnt in range(0, stacked_img_num)]
+        img_size_0 = previous_img_list[0].shape[0]
+        img_size_1 = previous_img_list[0].shape[1]
+        channel_num = stacked_img_num * previous_img_list[0].shape[2]
+        stacked_img_list.append(np.stack((img for img in previous_img_list), axis = 2).reshape(img_size_0, img_size_1, channel_num))
+    stacked_img_tensor = np.stack((stacked_img for stacked_img in stacked_img_list))
+    reward_tensor = np.stack((r for r in reward_column))
+    action_tensor = np.stack((a for a in action_column))
+    next_img_tensor = np.stack((next_img for next_img in next_img_list))
+    batch = [stacked_img_tensor, reward_tensor, action_tensor, next_img_tensor]
+    return [batch, selected_index]
 
 
