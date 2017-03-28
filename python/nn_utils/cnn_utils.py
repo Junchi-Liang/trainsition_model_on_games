@@ -34,6 +34,14 @@ def weight_convolution_normal(patch_size, num_input_channels, num_output_channel
     """
     return normal_weight_variable([patch_size[0], patch_size[1], num_input_channels, num_output_channels], stddev_input)
 
+def weight_deconvolution_normal(patch_size, num_input_channels, num_output_channels, stddev_input):
+    """
+        wrap normal_weight_variable
+        patch_size : list
+        patch_size - patch size is [patch_size[0], patch_size[1]], patch_size[0] = filter height, patch_size[1] = filter width
+    """
+    return normal_weight_variable([patch_size[0], patch_size[1], num_output_channels, num_input_channels], stddev_input)
+
 def bias_convolution(num_output_channels, constant_init):
     """
         wrap bias_variable
