@@ -10,7 +10,7 @@ import numpy.random
 # such that each episode has its own directory under input directory
 # assumption 2: images in each episode are named by their order, index starts from 0
 # assumption 3: rewards and actions are stored as file separately in each episode directory.
-# namely, we look act.log for actions and reward.log for rewards in each episode directory
+# namely, we look act_idx.log for actions and reward.log for rewards in each episode directory
 # assumption 4: rewards and actions are separated by new line ('\n') in these files
 
 def get_file_list(input_dir, img_format):
@@ -36,7 +36,7 @@ def get_file_list(input_dir, img_format):
     for episode in episode_list:
         img_dict[episode] = glob.glob(join(input_dir, episode + "/*." + img_format))
         img_dict[episode].sort(key=lambda file_name: int(file_name.split('/')[-1].split('.')[0]))
-        action_file_dict[episode] = join(input_dir, episode + '/act.log')
+        action_file_dict[episode] = join(input_dir, episode + '/act_idx.log')
         reward_file_dict[episode] = join(input_dir, episode + '/reward.log')
     return [episode_list, img_dict, action_file_dict, reward_file_dict]
 
@@ -237,3 +237,15 @@ def minibatch_from_disk(episode_list, img_dict, action_file_dict, reward_file_di
     return [batch, selected_index]
 
 
+def one_hot_action(action_tensor, num_actions):
+    """
+        convert a 1d tensor to a collections of one hot vector for actions
+        action_tensor : 1d tensor or list
+        action_tensor - list of actions, which can be obtained from a minibatch. We assume all actions locate in [0, num_actions - 1].
+        num_actions : int
+        num_actions - number of actions
+    """
+    actions_list = []
+    for action in action_tensor:
+        actions_list.append([(1 if int(action) == a else 0) for a in range(0, num_actions)])
+    return np.array(actions_list)
