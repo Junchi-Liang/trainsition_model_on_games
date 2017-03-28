@@ -42,7 +42,7 @@ def get_file_list(input_dir, img_format):
 
 def get_gray_img_tensor(input_file):
     """
-        read an image, and reshape it to 3d tensor with it size as (n, m, 1) when the image is (n, m)
+        read an image, and reshape it to 3d tensor with it size as (n, m, 1) when the image is (n, m), n is height, m is width
         input_file : str
         input_file - path for input image
     """
