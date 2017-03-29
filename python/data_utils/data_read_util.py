@@ -249,3 +249,24 @@ def one_hot_action(action_tensor, num_actions):
     for action in action_tensor:
         actions_list.append([(1 if int(action) == a else 0) for a in range(0, num_actions)])
     return np.array(actions_list)
+
+def mean_img_from_disk(sample_size, episode_list, img_dict):
+    """
+        get mean images from sampling on images in disk
+        sample_size : int
+        sample_size - number of sampling
+        episode_list : list
+        episode_list - list of episodes, which should be indices of img_dict. You can get it from get_file_list
+        img_dict : dictionary
+        img_dict - collection of file name of images, complete file name, indexed by elements in episode_list.
+                   File names in each episode are sorted. you can get it from get_file_list
+        return mean_img
+        mean_img : numpy.array
+        mean_img - 3d tensor, shape (m, n, c)
+    """
+    chosen_img_list = []
+    for _ in range(sample_size):
+        episode_selected = numpy.random.choice(episode_list)
+        chosen_img_list.append(get_gray_img_tensor(img_dict[episode_selected][numpy.random.choice(range(len(img_dict[episode_selected])))]))
+    chosen_imgs = np.stack((img for img in chosen_img_list))
+    return np.mean(np.float32(chosen_imgs), axis=0)
