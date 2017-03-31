@@ -61,7 +61,7 @@ class Generator_net:
             construct tensorflow computational graph
         """
         if (training_batch_size is None):
-            self.img_stacked_input_train_placeholder = None
+            self.deconv3_train = None
         else:
             self.img_stacked_input_train_placeholder = tf.placeholder(tf.float32, shape=[training_batch_size, self.img_height, self.img_width, self.num_stack * self.num_ch])
             self.frame_next_img_train_placeholder = tf.placeholder(tf.float32, shape=[training_batch_size, self.img_height, self.img_width, self.num_ch])
@@ -79,4 +79,28 @@ class Generator_net:
             conv3_relu_size = int(self.conv3_relu_train.shape[1]) * int(self.conv3_relu_train.shape[2]) * int(self.conv3_relu_train.shape[3])
             self.conv3_flat_train = tf.reshape(self.conv3_relu_train, [-1, conv3_relu_size])
 
-            #TODO: start here
+            self.fc1_train = tf.matmul(self.conv3_flat_train, self.w_fc1) + self.b_fc1
+            self.fc1_relu_train = tf.nn.relu(self.fc1_train)
+
+            self.fc2_train = tf.matmul(self.fc1_relu_train, self.w_fc2)
+            self.fca_train = tf.matmul(self.action_input_train_placeholder, self.w_fca)
+
+            self.fc3_train = tf.multiply(self.fc2_train, self.fca_train) + self.b_fc3
+            self.fc4_train = tf.matmul(self.fc3_train, self.w_fc4) + self.b_fc4
+
+            self.fc5_train = tf.matmul(self.fc4_train, self.w_fc5) + self.b_fc5
+            self.fc5_relu_train = tf.nn.relu(self.fc5_train)
+            self.fc5_shaped_train = tf.reshape(self.fc5_relu_train, [-1, 10, 10, 64])
+
+            self.deconv1_train = tf.nn.conv2d_transpose(self.fc5_shaped_train, self.w_deconv1, output_shape=[training_batch_size, 20, 20, 64], strides=[1, 2, 2, 1], padding='SAME') + self.b_deconv1
+            self.deconv1_relu_train = tf.nn.relu(self.deconv1_train)
+
+            self.deconv2_train = tf.nn.conv2d_transpose(self.deconv1_relu_train, self.w_deconv2, output_shape=[training_batch_size, 40, 40, 64], strides=[1, 2, 2, 1], padding='SAME') + self.b_deconv2
+            self.deconv2_relu_train = tf.nn.relu(self.deconv2_train)
+
+            self.deconv3_train = tf.nn.conv2d_transpose(self.deconv2_relu_train, self.w_deconv3, output_shape=[training_batch_size, 84, 84, 1], strides=[1, 2, 2, 1], padding='VALID') + self.b_deconv3
+
+        if (test_batch_size is None):
+            self.deconv3_test = None
+        else:
+            #TODO
