@@ -58,6 +58,11 @@ class Generator_net:
         self.w_deconv3 = nn_utils.cnn_utils.weight_deconvolution_normal([6, 6], 64, 1, 0.1)
         self.b_deconv3 = nn_utils.cnn_utils.bias_convolution(1, 0.1)
 
+        self.param = [self.w_conv1, self.b_conv1, self.w_conv2, self.b_conv2, self.w_conv3, self.b_conv3,\
+                      self.w_fc1, self.b_fc1, self.w_fc2, self.w_fca, self.b_fc3, self.w_fc4, self.b_fc4,\
+                      self.w_fc5, self.b_fc5, self.w_deconv1, self.b_deconv1, self.w_deconv2, self.b_deconv2,\
+                      self.w_deconv3, self.b_deconv3]
+
         self.net_train = self.construct_network_computational_graph(training_batch_size)
         self.net_predict = self.construct_network_computational_graph(1)
         if  (not(test_batch_size is None)):
