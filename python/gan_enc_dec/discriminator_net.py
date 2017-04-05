@@ -62,10 +62,12 @@ class Discriminator_net:
         self.train_step = tf.train.RMSPropOptimizer(1e-4,
                                                     momentum=0.9).minimize(self.train_loss, var_list=self.param)
 
-    def construct_network_computational_graph(self, batch_size):
+    def construct_network_computational_graph_without_img(self, layer_input, batch_size):
         """
             construct tensorflow computational graph for neural networks (loss
             and train step not included)
+            layer_input : tensorflow.python.framework.ops.Tensor
+            layer_input - the layer for image input
             batch_size : int
             batch_size - size of batch
             return layers
@@ -73,16 +75,12 @@ class Discriminator_net:
             layers - all layers of a network
         """
         layers = {}
-        layers["img_stacked_input_placeholder"] = tf.placeholder(tf.float32,\
-                                                        shape=[batch_size, self.img_height,\
-                                                        self.img_width, self.num_stack *\
-                                                        self.num_ch])
         layers["true_label_placeholder"] = tf.placeholder(tf.float32,
                                                                     shape=[batch_size, 1])
         layers["action_input_placeholder"] = tf.placeholder(tf.float32,
                                                             shape=[batch_size,
                                                                    self.num_act])
-        layers["conv1"] = tf.nn.conv2d(layers["img_stacked_input_placeholder"],
+        layers["conv1"] = tf.nn.conv2d(layer_input,
                                        self.w_conv1, strides=[1, 2, 2, 1], padding='VALID') + self.b_conv1
         layers["conv1_relu"] = tf.nn.relu(layers["conv1"])
         layers["conv2"] = tf.nn.conv2d(layers["conv1_relu"], self.w_conv2,
@@ -106,6 +104,26 @@ class Discriminator_net:
         layers["fc5_relu"] = tf.nn.relu(layers["fc5"])
         layers["fc6"] = tf.matmul(layers["fc5_relu"], self.w_fc6) + self.b_fc6
         layers["output"] = tf.sigmoid(layers["fc6"])
+
+        return layers
+
+
+    def construct_network_computational_graph(self, batch_size):
+        """
+            construct tensorflow computational graph for neural networks (loss
+            and train step not included)
+            batch_size : int
+            batch_size - size of batch
+            return layers
+            layers : dictionary of tensorflow.python.framework.ops.Tensor
+            layers - all layers of a network
+        """
+               
+        layer_img = tf.placeholder(tf.float32, shape=[batch_size, self.img_height,\
+                                                        self.img_width, self.num_stack *\
+                                                        self.num_ch])
+        layers = self.construct_network_computational_graph_without_img(layer_img, batch_size)
+        layers["img_stacked_input_placeholder"] = layer_img
 
         return layers
 
