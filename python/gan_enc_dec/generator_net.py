@@ -69,7 +69,7 @@ class Generator_net:
             self.net_test = self.construct_network_computational_graph(test_batch_size)
         self.train_loss = self.mean_square_loss(self.net_train["deconv3"], self.net_train["frame_next_img_placeholder"])
         self.train_step = tf.train.RMSPropOptimizer(1e-4,
-                                                    momentum=0.9).minimize(self.train_loss)
+                                                    momentum=0.9).minimize(self.train_loss, var_list=self.param)
 
 
     def construct_network_computational_graph(self, batch_size):

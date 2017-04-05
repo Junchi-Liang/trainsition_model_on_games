@@ -60,7 +60,7 @@ class Discriminator_net:
             self.net_test = self.construct_network_computational_graph(test_batch_size)
         self.train_loss = tf.nn.weighted_cross_entropy_with_logits(self.net_train["true_label_placeholder"], self.net_train["fc6"], 1.0)
         self.train_step = tf.train.RMSPropOptimizer(1e-4,
-                                                    momentum=0.9).minimize(self.train_loss)
+                                                    momentum=0.9).minimize(self.train_loss, var_list=self.param)
 
     def construct_network_computational_graph(self, batch_size):
         """
