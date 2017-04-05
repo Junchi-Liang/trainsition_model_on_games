@@ -41,6 +41,8 @@ class Gan_net:
 
         self.d_loss = self.d_net.train_loss
 
+        # TODO: train step for both networks, train iterations
+
     def convert_g2d(self, g_net_img_input, g_net_output):
         """
             convert output tensor of generative network to input tensor for discriminative
