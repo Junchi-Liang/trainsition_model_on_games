@@ -3,12 +3,13 @@ import numpy as np
 import nn_utils.cnn_utils
 from generator_net import Generator_net
 from discriminator_net import Discriminator_net
+import data_utils.data_read_util
 
 class Gan_net:
     """
         GAN
     """
-    def __init__(self, stacked_img_num = 4, image_height = 84, image_width = 84, num_actions = 18, num_channels = 1, training_batch_size_g = 32, test_batch_size_g = None, training_batch_size_d = 32, test_batch_size_d = None):
+    def __init__(self, stacked_img_num = 4, image_height = 84, image_width = 84, num_actions = 18, num_channels = 1, training_batch_size_g = 32, test_batch_size_g = None, training_batch_size_d = 64, test_batch_size_d = None):
         """
             stacked_img_num : int
             stacked_img_num - number of stacked image for input
@@ -26,6 +27,10 @@ class Gan_net:
         self.num_act = num_actions
         self.num_stack = stacked_img_num
         self.num_ch = num_channels
+        self.batch_size_train_g = training_batch_size_g
+        self.batch_size_test_g = test_batch_size_g
+        self.batch_size_train_d = training_batch_size_d
+        self.batch_size_test_d = test_batch_size_d
 
         self.g_net = Generator_net(stacked_img_num, image_height, image_width, num_actions, num_channels, training_batch_size_g, test_batch_size_g)
         self.d_net = Discriminator_net(stacked_img_num + 1, image_height, image_width, num_actions, num_channels, training_batch_size_d, test_batch_size_d)
@@ -41,7 +46,10 @@ class Gan_net:
 
         self.d_loss = self.d_net.train_loss
 
-        # TODO: train step for both networks, train iterations
+        self.train_step_g = tf.train.RMSPropOptimizer(1e-4,
+                                                    momentum=0.9).minimize(self.g_loss, var_list=self.g_net.param)
+        self.train_step_d = tf.train.RMSPropOptimizer(1e-4,
+                                                    momentum=0.9).minimize(self.d_loss, var_list=self.d_net.param)
 
     def convert_g2d(self, g_net_img_input, g_net_output):
         """
@@ -59,7 +67,7 @@ class Gan_net:
         stacked_img_tensor = np.concatenate((g_net_output, g_net_img_input), axis = 3)
         return stacked_img_tensor
 
-    def minibatch_g2d(self, batch_g, g_net_output):
+    def minibatch_g2d(self, batch_g, g_net_output, preprocess = False, mean_img = None):
         """
             get a minibatch for discriminative network from a minibatch of generative network
             batch_g : list
@@ -67,6 +75,8 @@ class Gan_net:
             g_net_output : numpy.array
             g_net_output - 4d tensor, output from generative network for batch_g.
                            shape (b, m, n, c)
+            preprocess : boolean
+            preprocess - if yes, preprocess next frame
             return batch_d = [d_input_imgs, action_tensor, true_labels]
             batch_d : list
             batch_d - a batch for discriminative network.
@@ -76,8 +86,66 @@ class Gan_net:
         """
         g_input_imgs, reward_tensor, action_tensor, next_img_tensor = batch_g
         stack_0 = self.convert_g2d(g_input_imgs, g_net_output)
-        stack_1 = self.convert_g2d(g_input_imgs, next_img_tensor)
+        if (preprocess):
+            stack_1 = self.convert_g2d(g_input_imgs, self.img_preproprocess(next_img_tensor, mean_img))
+        else:
+            stack_1 = self.convert_g2d(g_input_imgs, next_img_tensor)
         d_input_imgs = np.concatenate((stack_0, stack_1), axis = 0)
         true_labels = np.concatenate((np.zeros([next_img_tensor.shape[0], 1]), np.zeros([next_img_tensor.shape[0], 1]) + 1), axis = 0)
         batch_d = [d_input_imgs, action_tensor, true_labels]
-        return [batch_d, self.convert_g2d(g_input_imgs, g_net_output), self.convert_g2d(g_input_imgs, next_img_tensor)]
+        return batch_d
+
+    def img_preproprocess(self, img, mean_img):
+        """
+            preprocess image
+            img : numpy.array
+            img - image(s) to be preprocessed, it can be one image or a batch of images
+            mean_img : numpy.array
+            mean_img - mean image of the dataset
+            return img_processed
+            img_processed : numpy.array
+            img_processed - result image
+        """
+        if (mean_img is None):
+            img_processed = img
+        else:
+            img_processed = (np.float32(img) - np.float32(mean_img)) / 255.0
+        return img_processed
+        
+
+    def train_iteration(self, tf_sess, num_iteration_g = 1, num_iteration_d = 5, batch_memory_arg = None, batch_disk_arg = None, display = False, mean_img = None, preprocess = False):
+        """
+        """
+        if (batch_memory_arg is not None):
+            dataset, episode_list, action_file_dict, reward_file_dict, frame_stride = batch_memory_arg
+            for i_d in range(num_iteration_d):
+                batch, _ = data_utils.data_read_util.minibatch_from_whole_dataset(dataset, episode_list, action_file_dict, reward_file_dict, self.num_stack, frame_stride, self.batch_size_train_g)
+                stacked_img_tensor, reward_tensor, action_tensor, next_img_tensor = batch
+                action_one_hot_tensor = data_utils.data_read_util.one_hot_action(action_tensor, self.num_act)
+                if (preprocess):
+                    processed_input = self.img_preproprocess(stacked_img_tensor, mean_img)
+                else:
+                    processed_input = stacked_img_tensor
+                if (preprocess):
+                    processed_output = self.img_preproprocess(next_img_tensor, mean_img)
+                else:
+                    processed_output = next_img_tensor
+                output_d = tf_sess.run(self.g_net.net_train["deconv3"], feed_dict = {self.g_net.net_train["img_stacked_input_placeholder"]: processed_input, self.g_net.net_train["action_input_placeholder"]: action_one_hot_tensor})
+                batch_d = self.minibatch_g2d(batch, output_d, preprocess, mean_img)
+                d_input_imgs, action_tensor, true_labels = batch_d
+                self.train_step_d.run(feed_dict = {self.d_net.net_train["img_stacked_input_placeholder"]: d_input_imgs, self.d_net.net_train["action_input_placeholder"]: action_one_hot_tensor, self.d_net.net_train["true_label_placeholder"]: true_labels})
+                if (display):
+                    print '--training loss of D, #', i_d, ':'
+                # TODO: start here
+        elif (batch_disk_arg is not None):
+            episode_list, img_dict, action_file_dict, reward_file_dict, frame_stride = batch_disk_arg
+        else:
+            return
+
+
+
+
+
+
+
+
