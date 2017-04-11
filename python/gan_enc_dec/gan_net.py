@@ -41,8 +41,10 @@ class Gan_net:
 
         lambda_adv_g = (1.0 / 100.0)
         lambda_lp = 500
+        lambda_gdl = 500
         self.g_loss_adv = tf.reduce_sum(tf.nn.weighted_cross_entropy_with_logits(self.d_train["true_label_placeholder"], self.d_train["fc6"], 1.0))
-        self.g_loss = lambda_adv_g * self.g_loss_adv + lambda_lp * self.g_net.train_loss
+        self.g_loss_gdl = self.g_net.gradient_difference_loss(self.g_net.net_train["deconv3"], self.g_net.net_train["frame_next_img_placeholder"])
+        self.g_loss = lambda_adv_g * self.g_loss_adv + lambda_lp * self.g_net.train_loss + lambda_gdl * self.g_loss_gdl
 
         self.d_loss = self.d_net.train_loss
 
@@ -187,7 +189,7 @@ class Gan_net:
                 print '--training loss of G, #', i_g, ':', tf_sess.run(self.g_loss, feed_dict = {self.g_net.net_train["img_stacked_input_placeholder"]: processed_input, self.g_net.net_train["frame_next_img_placeholder"]: processed_output, self.g_net.net_train["action_input_placeholder"]: action_one_hot_tensor, self.d_train["action_input_placeholder"]: action_one_hot_tensor, self.d_train["true_label_placeholder"]: (1 + np.zeros([self.batch_size_train_g, 1]))})
                 print '---training loss of g_adv, #', i_g, ':', tf_sess.run(self.g_loss_adv, feed_dict = {self.g_net.net_train["img_stacked_input_placeholder"]: processed_input, self.g_net.net_train["frame_next_img_placeholder"]: processed_output, self.g_net.net_train["action_input_placeholder"]: action_one_hot_tensor, self.d_train["action_input_placeholder"]: action_one_hot_tensor, self.d_train["true_label_placeholder"]: (1 + np.zeros([self.batch_size_train_g, 1]))})
                 print '---training loss of g_lp, #', i_g, ':', tf_sess.run(self.g_net.train_loss, feed_dict = {self.g_net.net_train["img_stacked_input_placeholder"]: processed_input, self.g_net.net_train["frame_next_img_placeholder"]: processed_output, self.g_net.net_train["action_input_placeholder"]: action_one_hot_tensor, self.d_train["action_input_placeholder"]: action_one_hot_tensor, self.d_train["true_label_placeholder"]: (1 + np.zeros([self.batch_size_train_g, 1]))})
-
+                print '---training loss of g_gdl, #', i_g, ':', tf_sess.run(self.g_loss_gdl, feed_dict = {self.g_net.net_train["img_stacked_input_placeholder"]: processed_input, self.g_net.net_train["frame_next_img_placeholder"]: processed_output, self.g_net.net_train["action_input_placeholder"]: action_one_hot_tensor, self.d_train["action_input_placeholder"]: action_one_hot_tensor, self.d_train["true_label_placeholder"]: (1 + np.zeros([self.batch_size_train_g, 1]))})
 
 
 
