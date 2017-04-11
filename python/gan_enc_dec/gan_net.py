@@ -41,8 +41,10 @@ class Gan_net:
 
         lambda_adv_g = 0.5
         lambda_lp = 0.5
+        lambda_gdl = 0.5
         self.g_loss_adv = tf.nn.weighted_cross_entropy_with_logits(self.d_train["true_label_placeholder"], self.d_train["fc6"], 1.0)
-        self.g_loss = lambda_adv_g * self.g_loss_adv + lambda_lp * self.g_net.train_loss
+        self.g_loss_gdl = self.g_net.gradient_difference_loss(self.g_net.net_train["deconv3"], self.g_net.net_train["frame_next_img_placeholder"])
+        self.g_loss = lambda_adv_g * self.g_loss_adv + lambda_lp * self.g_net.train_loss + lambda_gdl * self.g_loss_gdl
 
         self.d_loss = self.d_net.train_loss
 

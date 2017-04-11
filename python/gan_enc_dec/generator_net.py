@@ -154,3 +154,25 @@ class Generator_net:
         """
         return tf.reduce_mean(tf.square(net_output - true_ans))
 
+    def gradient_difference_loss(self, net_output, true_ans):
+        """
+            construct a computational graph for gradient difference loss
+            net_output : tensorflow.python.framework.ops.Tensor
+            net_output - a computational graph node for network output
+            true_ans : tensorflow.python.framework.ops.Tensor
+            true_ans - a computational graph node for true answer, it should be
+            a placeholder
+            return loss
+            loss : tensorflow.python.framework.ops.Tensor
+            loss - a computational node for loss
+        """
+        g1 = np.float32(np.array([[0, -1, 0], [0, 1 ,0], [0, 0, 0]])).reshape([3, 3, 1])
+        g2 = np.float32(np.array([[0, 0, 0], [0, 1 ,0], [0, -1, 0]])).reshape([3, 3, 1])
+        g3 = np.float32(np.array([[0, 0, 0], [-1, 1 ,0], [0, 0, 0]])).reshape([3, 3, 1])
+        g4 = np.float32(np.array([[0, 0, 0], [0, 1 ,-1], [0, 0, 0]])).reshape([3, 3, 1])
+        g = np.stack((g1, g2, g3, g4), axis = 3)
+        net_output_gradient = tf.nn.conv2d(net_output, g, strides= [1, 1, 1, 1], padding='VALID')
+        ground_truth = tf.nn.conv2d(true_ans, g, strides = [1, 1, 1, 1], padding='VALID')
+        loss = tf.reduce_mean(tf.square(net_output_gradient - ground_truth))
+        return loss
+
