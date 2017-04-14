@@ -84,37 +84,37 @@ class Multi_Step_net:
         """
         params = {}
         if (params_shared is None):
-            self.w_conv1 = nn_utils.cnn_utils.weight_convolution_normal([6, 6], stacked_img_num, 64, 0.1)
-            self.b_conv1 = nn_utils.cnn_utils.bias_convolution(64, 0.1)
+            params["w_conv1"] = nn_utils.cnn_utils.weight_convolution_normal([6, 6], stacked_img_num, 64, 0.1)
+            params["b_conv1"] = nn_utils.cnn_utils.bias_convolution(64, 0.1)
 
-            self.w_conv2 = nn_utils.cnn_utils.weight_convolution_normal([6, 6], 64, 64, 0.1)
-            self.b_conv2 = nn_utils.cnn_utils.bias_convolution(64, 0.1)
+            params["w_conv2"] = nn_utils.cnn_utils.weight_convolution_normal([6, 6], 64, 64, 0.1)
+            params["b_conv2"] = nn_utils.cnn_utils.bias_convolution(64, 0.1)
 
-            self.w_conv3 = nn_utils.cnn_utils.weight_convolution_normal([6, 6], 64, 64, 0.1)
-            self.b_conv3 = nn_utils.cnn_utils.bias_convolution(64, 0.1)
+            params["w_conv3"] = nn_utils.cnn_utils.weight_convolution_normal([6, 6], 64, 64, 0.1)
+            params["b_conv3"] = nn_utils.cnn_utils.bias_convolution(64, 0.1)
 
-            self.w_fc1 = nn_utils.cnn_utils.normal_weight_variable([6400, 1024], 0.1)
-            self.b_fc1 = nn_utils.cnn_utils.bias_variable([1024], 0.1)
+            params["w_fc1"] = nn_utils.cnn_utils.normal_weight_variable([6400, 1024], 0.1)
+            params["b_fc1"] = nn_utils.cnn_utils.bias_variable([1024], 0.1)
         
-            self.w_fc2 = nn_utils.cnn_utils.normal_weight_variable([1024, 2048], 0.1)
-            self.w_fca = nn_utils.cnn_utils.normal_weight_variable([18, 2048], 0.1)
+            params["w_fc2"] = nn_utils.cnn_utils.normal_weight_variable([1024, 2048], 0.1)
+            params["w_fca"] = nn_utils.cnn_utils.normal_weight_variable([18, 2048], 0.1)
 
-            self.b_fc3 = nn_utils.cnn_utils.bias_variable([2048], 0.1)
+            params["b_fc3"] = nn_utils.cnn_utils.bias_variable([2048], 0.1)
 
-            self.w_fc4 = nn_utils.cnn_utils.normal_weight_variable([2048, 1024], 0.1)
-            self.b_fc4 = nn_utils.cnn_utils.bias_variable([1024], 0.1)
+            params["w_fc4"] = nn_utils.cnn_utils.normal_weight_variable([2048, 1024], 0.1)
+            params["b_fc4"] = nn_utils.cnn_utils.bias_variable([1024], 0.1)
 
-            self.w_fc5 = nn_utils.cnn_utils.normal_weight_variable([1024, 6400], 0.1)
-            self.b_fc5 = nn_utils.cnn_utils.bias_variable([6400], 0.1)
+            params["w_fc5"] = nn_utils.cnn_utils.normal_weight_variable([1024, 6400], 0.1)
+            params["b_fc5"] = nn_utils.cnn_utils.bias_variable([6400], 0.1)
 
-            self.w_deconv1 = nn_utils.cnn_utils.weight_deconvolution_normal([6, 6], 64, 64, 0.1)
-            self.b_deconv1 = nn_utils.cnn_utils.bias_convolution(64, 0.1)
+            params["w_deconv1"] = nn_utils.cnn_utils.weight_deconvolution_normal([6, 6], 64, 64, 0.1)
+            params["b_deconv1"] = nn_utils.cnn_utils.bias_convolution(64, 0.1)
 
-            self.w_deconv2 = nn_utils.cnn_utils.weight_deconvolution_normal([6, 6], 64, 64, 0.1)
-            self.b_deconv2 = nn_utils.cnn_utils.bias_convolution(64, 0.1)
+            params["w_deconv2"] = nn_utils.cnn_utils.weight_deconvolution_normal([6, 6], 64, 64, 0.1)
+            params["b_deconv2"] = nn_utils.cnn_utils.bias_convolution(64, 0.1)
 
-            self.w_deconv3 = nn_utils.cnn_utils.weight_deconvolution_normal([6, 6], 64, 1, 0.1)
-            self.b_deconv3 = nn_utils.cnn_utils.bias_convolution(1, 0.1)
+            params["w_deconv3"] = nn_utils.cnn_utils.weight_deconvolution_normal([6, 6], 64, 1, 0.1)
+            params["b_deconv3"] = nn_utils.cnn_utils.bias_convolution(1, 0.1)
         else:
             params = params_shared
         layers = {}
@@ -134,49 +134,49 @@ class Multi_Step_net:
                                                             shape=[batch_size,
                                                                    self.num_act])
         layers["conv1"] = tf.nn.conv2d(layers["img_stacked_input_placeholder"],
-                                       self.w_conv1, strides=[1, 2, 2, 1], padding='VALID') + self.b_conv1
+                                       params["w_conv1"], strides=[1, 2, 2, 1], padding='VALID') + params["b_conv1"]
         layers["conv1_relu"] = tf.nn.relu(layers["conv1"])
-        layers["conv2"] = tf.nn.conv2d(layers["conv1_relu"], self.w_conv2,
-                                       strides=[1, 2, 2, 1], padding='SAME') + self.b_conv2
+        layers["conv2"] = tf.nn.conv2d(layers["conv1_relu"], params["w_conv2"],
+                                       strides=[1, 2, 2, 1], padding='SAME') + params["b_conv2"]
         layers["conv2_relu"] = tf.nn.relu(layers["conv2"])
-        layers["conv3"] = tf.nn.conv2d(layers["conv2_relu"], self.w_conv3,
-                                       strides=[1, 2, 2, 1], padding='SAME') + self.b_conv3
+        layers["conv3"] = tf.nn.conv2d(layers["conv2_relu"], params["w_conv3"],
+                                       strides=[1, 2, 2, 1], padding='SAME') + params["b_conv3"]
         layers["conv3_relu"] = tf.nn.relu(layers["conv3"])
         conv3_relu_size = int(layers["conv3_relu"].shape[1]) *\
                 int(layers["conv3_relu"].shape[2]) *\
                 int(layers["conv3_relu"].shape[3])
         layers["conv3_flat"] = tf.reshape(layers["conv3_relu"], [-1,
                                                                   conv3_relu_size])
-        layers["fc1"] = tf.matmul(layers["conv3_flat"], self.w_fc1) + self.b_fc1
+        layers["fc1"] = tf.matmul(layers["conv3_flat"], params["w_fc1"]) + params["b_fc1"]
         layers["fc1_relu"] = tf.nn.relu(layers["fc1"])
-        layers["fc2"] = tf.matmul(layers["fc1_relu"], self.w_fc2)
-        layers["fca"] = tf.matmul(layers["action_input_placeholder"], self.w_fca)
-        layers["fc3"] = tf.multiply(layers["fc2"], layers["fca"]) + self.b_fc3
-        layers["fc4"] = tf.matmul(layers["fc3"], self.w_fc4) + self.b_fc4
-        layers["fc5"] = tf.matmul(layers["fc4"], self.w_fc5) + self.b_fc5
+        layers["fc2"] = tf.matmul(layers["fc1_relu"], params["w_fc2"])
+        layers["fca"] = tf.matmul(layers["action_input_placeholder"], params["w_fca"])
+        layers["fc3"] = tf.multiply(layers["fc2"], layers["fca"]) + params["b_fc3"]
+        layers["fc4"] = tf.matmul(layers["fc3"], params["w_fc4"]) + params["b_fc4"]
+        layers["fc5"] = tf.matmul(layers["fc4"], params["w_fc5"]) + params["b_fc5"]
         layers["fc5_relu"] = tf.nn.relu(layers["fc5"])
         layers["fc5_shaped"] = tf.reshape(layers["fc5_relu"], [-1, 10, 10, 64])
         layers["deconv1"] = tf.nn.conv2d_transpose(layers["fc5_shaped"],
-                                                   self.w_deconv1,
+                                                   params["w_deconv1"],
                                                    output_shape=[batch_size,
                                                                  20, 20, 64],
                                                    strides=[1, 2, 2, 1],
-                                                   padding='SAME') + self.b_deconv1
+                                                   padding='SAME') + params["b_deconv1"]
         layers["deconv1_relu"] = tf.nn.relu(layers["deconv1"])
         layers["deconv2"] = tf.nn.conv2d_transpose(layers["deconv1_relu"],
-                                                   self.w_deconv2,
+                                                   params["w_deconv2"],
                                                    output_shape=[batch_size,
                                                                  40, 40, 64],
                                                    strides=[1, 2, 2, 1],
-                                                   padding='SAME') + self.b_deconv2
+                                                   padding='SAME') + params["b_deconv2"]
         layers["deconv2_relu"] = tf.nn.relu(layers["deconv2"])
         layers["deconv3"] = tf.nn.conv2d_transpose(layers["deconv2_relu"],
-                                                   self.w_deconv3,
+                                                   params["w_deconv3"],
                                                    output_shape=[batch_size,
                                                                  84, 84, 1],
                                                    strides=[1, 2, 2, 1],
-                                                   padding='VALID') + self.b_deconv3
-        return layers
+                                                   padding='VALID') + params["b_deconv3"]
+        return [layers, params]
 
     def mean_square_loss(self, net_output, true_ans):
         """
