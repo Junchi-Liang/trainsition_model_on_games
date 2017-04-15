@@ -4,6 +4,7 @@ import glob
 import skimage.io
 import numpy as np
 import numpy.random
+import scipy.misc
 
 # This module is for reading data from disk 
 # assumption 1: data in input directory is collected according to episodes
@@ -46,7 +47,8 @@ def get_gray_img_tensor(input_file):
         input_file : str
         input_file - path for input image
     """
-    img_input = skimage.io.imread(input_file)
+    img_input = scipy.misc.imread(input_file)
+    #img_input = skimage.io.imread(input_file)
     img_tensor = img_input.reshape((img_input.shape[0], img_input.shape[1], 1))
     return img_tensor
 

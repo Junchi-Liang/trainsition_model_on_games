@@ -26,42 +26,8 @@ class Multi_Step_net:
         self.num_act = num_actions
         self.num_stack = stacked_img_num
         self.num_ch = num_channels
-        self.w_conv1 = nn_utils.cnn_utils.weight_convolution_normal([6, 6], stacked_img_num, 64, 0.1)
-        self.b_conv1 = nn_utils.cnn_utils.bias_convolution(64, 0.1)
 
-        self.w_conv2 = nn_utils.cnn_utils.weight_convolution_normal([6, 6], 64, 64, 0.1)
-        self.b_conv2 = nn_utils.cnn_utils.bias_convolution(64, 0.1)
-
-        self.w_conv3 = nn_utils.cnn_utils.weight_convolution_normal([6, 6], 64, 64, 0.1)
-        self.b_conv3 = nn_utils.cnn_utils.bias_convolution(64, 0.1)
-
-        self.w_fc1 = nn_utils.cnn_utils.normal_weight_variable([6400, 1024], 0.1)
-        self.b_fc1 = nn_utils.cnn_utils.bias_variable([1024], 0.1)
-        
-        self.w_fc2 = nn_utils.cnn_utils.normal_weight_variable([1024, 2048], 0.1)
-        self.w_fca = nn_utils.cnn_utils.normal_weight_variable([18, 2048], 0.1)
-
-        self.b_fc3 = nn_utils.cnn_utils.bias_variable([2048], 0.1)
-
-        self.w_fc4 = nn_utils.cnn_utils.normal_weight_variable([2048, 1024], 0.1)
-        self.b_fc4 = nn_utils.cnn_utils.bias_variable([1024], 0.1)
-
-        self.w_fc5 = nn_utils.cnn_utils.normal_weight_variable([1024, 6400], 0.1)
-        self.b_fc5 = nn_utils.cnn_utils.bias_variable([6400], 0.1)
-
-        self.w_deconv1 = nn_utils.cnn_utils.weight_deconvolution_normal([6, 6], 64, 64, 0.1)
-        self.b_deconv1 = nn_utils.cnn_utils.bias_convolution(64, 0.1)
-
-        self.w_deconv2 = nn_utils.cnn_utils.weight_deconvolution_normal([6, 6], 64, 64, 0.1)
-        self.b_deconv2 = nn_utils.cnn_utils.bias_convolution(64, 0.1)
-
-        self.w_deconv3 = nn_utils.cnn_utils.weight_deconvolution_normal([6, 6], 64, 1, 0.1)
-        self.b_deconv3 = nn_utils.cnn_utils.bias_convolution(1, 0.1)
-
-        self.param = [self.w_conv1, self.b_conv1, self.w_conv2, self.b_conv2, self.w_conv3, self.b_conv3,\
-                      self.w_fc1, self.b_fc1, self.w_fc2, self.w_fca, self.b_fc3, self.w_fc4, self.b_fc4,\
-                      self.w_fc5, self.b_fc5, self.w_deconv1, self.b_deconv1, self.w_deconv2, self.b_deconv2,\
-                      self.w_deconv3, self.b_deconv3]
+        self.step_net = []
 
         self.net_train = self.construct_network_computational_graph(training_batch_size)
         self.net_predict = self.construct_network_computational_graph(1)
