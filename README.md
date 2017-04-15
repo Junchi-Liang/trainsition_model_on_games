@@ -2,5 +2,5 @@
 Implement some CNN architectures for transition models on games with Tensorflow
 ## Dependencies
  - Tensorflow 1.0
- - scikit-image
+ - scipy
  - numpy

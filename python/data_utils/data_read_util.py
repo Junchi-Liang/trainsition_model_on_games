@@ -1,7 +1,6 @@
 from os import listdir
 from os.path import isfile, join, isdir
 import glob
-import skimage.io
 import numpy as np
 import numpy.random
 import scipy.misc
