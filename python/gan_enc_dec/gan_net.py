@@ -102,23 +102,6 @@ class Gan_net:
         true_labels_scramble = true_labels[random_ind]
         batch_d = [d_input_imgs_scramble, action_extended_scramble, true_labels_scramble]
         return batch_d
-
-    def img_preproprocess(self, img, mean_img):
-        """
-            preprocess image
-            img : numpy.array
-            img - image(s) to be preprocessed, it can be one image or a batch of images
-            mean_img : numpy.array
-            mean_img - mean image of the dataset
-            return img_processed
-            img_processed : numpy.array
-            img_processed - result image
-        """
-        if (mean_img is None):
-            img_processed = img
-        else:
-            img_processed = (np.float32(img) - np.float32(mean_img)) / 255.0
-        return img_processed
         
     def train_iteration(self, tf_sess, num_iteration_g = 1, num_iteration_d = 5, batch_memory_arg = None, batch_disk_arg = None, display = False, mean_img = None, preprocess = False):
         """

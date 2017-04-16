@@ -45,7 +45,10 @@ class Multi_Step_net:
         self.net_predict_layer, _ = self.construct_network_computational_graph(batch_size = 1, params_shared = self.step_train_net_param[0])
         if  (not(test_batch_size is None)):
             self.net_test = self.construct_network_computational_graph(batch_size = test_batch_size, params_shared = self.step_train_net_param[0])
-        self.train_loss = self.mean_square_loss(self.net_train["deconv3"], self.net_train["frame_next_img_placeholder"])
+        self.train_multi_step_loss = self.mean_square_loss(self.step_train_net_layer[0]["deconv3"], self.step_train_net_layer[0]["frame_next_img_placeholder"])
+        for step_cur in range(1, step_prediction):
+            self.train_multi_step_loss = self.train_multi_step_loss + self.mean_square_loss(self.step_train_net_layer[step_cur]["deconv3"],\
+                                            self.step_train_net_layer[step_cur]["frame_next_img_placeholder"])
         self.train_step = tf.train.RMSPropOptimizer(1e-4,
                                                     momentum=0.9).minimize(self.train_loss, var_list=self.param)
 
