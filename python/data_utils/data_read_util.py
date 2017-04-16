@@ -47,7 +47,6 @@ def get_gray_img_tensor(input_file):
         input_file - path for input image
     """
     img_input = scipy.misc.imread(input_file)
-    #img_input = skimage.io.imread(input_file)
     img_tensor = img_input.reshape((img_input.shape[0], img_input.shape[1], 1))
     return img_tensor
 

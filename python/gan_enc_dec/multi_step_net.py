@@ -8,7 +8,7 @@ class Multi_Step_net:
     """
     def __init__(self, stacked_img_num = 4, image_height = 84, image_width =\
                  84, num_actions = 18, num_channels = 1, training_batch_size =\
-                32, test_batch_size = None):
+                32, test_batch_size = None, step_prediction = 7):
         """
             stacked_img_num : int
             stacked_img_num - number of stakced images
@@ -20,31 +20,43 @@ class Multi_Step_net:
             num_actions - number of actions
             num_channels : int
             num_channels - number of channels
+            step_prediction : int
+            step_prediction - number of steps for prediction in training
         """
         self.img_height = image_height
         self.img_width = image_width
         self.num_act = num_actions
         self.num_stack = stacked_img_num
         self.num_ch = num_channels
+        self.num_step = step_prediction
 
-        self.step_net = []
+        self.step_train_net_layer = []
+        self.step_train_net_param = []
+        for step_cur int range(step_prediction):
+            if (step_cur == 0):
+                layer_cur, param_cur = self.construct_network_computational_graph(batch_size = training_batch_size)
+            else:
+                concat_layer = tf.concat([self.step_train_net_layer[step_cur - 1]["deconv3"], \
+                                   self.step_train_net_layer[step_cur - 1]["img_stacked_input_placeholder"][:, :, :, 0 : step_prediction - 1]], axis = 3)
+                layer_cur, param_cur = self.construct_network_computational_graph(batch_size = training_batch_size, input_layer = concat_layer)
+            self.step_train_net_layer.append(layer_cur)
+            self.step_train_net_param.append(param_cur)
 
-        self.net_train = self.construct_network_computational_graph(training_batch_size)
-        self.net_predict = self.construct_network_computational_graph(1)
+        self.net_predict_layer, _ = self.construct_network_computational_graph(batch_size = 1, params_shared = self.step_train_net_param[0])
         if  (not(test_batch_size is None)):
-            self.net_test = self.construct_network_computational_graph(test_batch_size)
+            self.net_test = self.construct_network_computational_graph(batch_size = test_batch_size, params_shared = self.step_train_net_param[0])
         self.train_loss = self.mean_square_loss(self.net_train["deconv3"], self.net_train["frame_next_img_placeholder"])
         self.train_step = tf.train.RMSPropOptimizer(1e-4,
                                                     momentum=0.9).minimize(self.train_loss, var_list=self.param)
 
 
-    def construct_network_computational_graph(self, input_layer = None, params_shared = None, batch_size):
+    def construct_network_computational_graph(self, batch_size, input_layer = None, params_shared = None):
         """
             construct tensorflow computational graph for neural networks (loss
             and train step not included)
             batch_size : int
             batch_size - size of batch
-            return layers
+            return [layers, params]
             layers : dictionary of tensorflow.python.framework.ops.Tensor
             layers - all layers of a network
         """

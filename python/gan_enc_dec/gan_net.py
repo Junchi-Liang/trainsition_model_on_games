@@ -4,6 +4,7 @@ import nn_utils.cnn_utils
 from generator_net import Generator_net
 from discriminator_net import Discriminator_net
 import data_utils.data_read_util
+import data_utils.img_process_util
 
 class Gan_net:
     """
@@ -39,7 +40,7 @@ class Gan_net:
         self.concat_layer_g = tf.concat([self.g_net.net_train["deconv3"], self.g_net.net_train["img_stacked_input_placeholder"]], axis = 3)
         self.d_train = self.d_net.construct_network_computational_graph_without_img(self.concat_layer_g, training_batch_size_g)
 
-        lambda_adv_g = (1.0 / 100.0)
+        lambda_adv_g = (1.0 / 1000.0)
         lambda_lp = 500
         lambda_gdl = 500
         self.g_loss_adv = tf.reduce_sum(tf.nn.weighted_cross_entropy_with_logits(self.d_train["true_label_placeholder"], self.d_train["fc6"], 1.0))
@@ -89,7 +90,7 @@ class Gan_net:
         g_input_imgs, reward_tensor, action_tensor, next_img_tensor = batch_g
         stack_0 = self.convert_g2d(g_input_imgs, g_net_output)
         if (preprocess):
-            stack_1 = self.convert_g2d(g_input_imgs, self.img_preproprocess(next_img_tensor, mean_img))
+            stack_1 = self.convert_g2d(g_input_imgs, data_utils.img_process_util.img_normalize(next_img_tensor, mean_img))
         else:
             stack_1 = self.convert_g2d(g_input_imgs, next_img_tensor)
         d_input_imgs = np.concatenate((stack_0, stack_1), axis = 0)
@@ -158,8 +159,8 @@ class Gan_net:
             stacked_img_tensor, reward_tensor, action_tensor, next_img_tensor = batch
             action_one_hot_tensor = data_utils.data_read_util.one_hot_action(action_tensor, self.num_act)
             if (preprocess):
-                processed_input = self.img_preproprocess(stacked_img_tensor, mean_img)
-                processed_output = self.img_preproprocess(next_img_tensor, mean_img)
+                processed_input = data_utils.img_process_util.img_normalize(stacked_img_tensor, mean_img)
+                processed_output = data_utils.img_process_util.img_normalize(next_img_tensor, mean_img)
             else:
                 processed_input = stacked_img_tensor
                 processed_output = next_img_tensor
@@ -179,8 +180,8 @@ class Gan_net:
             stacked_img_tensor, reward_tensor, action_tensor, next_img_tensor = batch_g
             action_one_hot_tensor = data_utils.data_read_util.one_hot_action(action_tensor, self.num_act)
             if (preprocess):
-                processed_input = self.img_preproprocess(stacked_img_tensor, mean_img)
-                processed_output = self.img_preproprocess(next_img_tensor, mean_img)
+                processed_input = data_utils.img_process_util.img_normalize(stacked_img_tensor, mean_img)
+                processed_output = data_utils.img_process_util.img_normalize(next_img_tensor, mean_img)
             else:
                 processed_input = stacked_img_tensor
                 processed_output = next_img_tensor
