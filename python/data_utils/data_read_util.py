@@ -203,7 +203,7 @@ def minibatch_from_disk(episode_list, img_dict, action_file_dict, reward_file_di
         episode = numpy.random.choice(episode_list)
         episode_size = len(img_dict[episode])
         selected_index.append([episode, numpy.random.choice(range(frame_stride * (stacked_img_num - 1), episode_size - 1))])
-    selected_index.sort(key=lambda t: t[0])   
+    selected_index.sort(key=lambda t: t[0]) 
     previous_episode = ''
     stacked_img_list = []
     next_img_list = []
@@ -235,7 +235,6 @@ def minibatch_from_disk(episode_list, img_dict, action_file_dict, reward_file_di
     next_img_tensor = np.stack((next_img for next_img in next_img_list))
     batch = [stacked_img_tensor, reward_tensor, action_tensor, next_img_tensor]
     return [batch, selected_index]
-
 
 def one_hot_action(action_tensor, num_actions):
     """
@@ -270,3 +269,63 @@ def mean_img_from_disk(sample_size, episode_list, img_dict):
         chosen_img_list.append(get_gray_img_tensor(img_dict[episode_selected][numpy.random.choice(range(len(img_dict[episode_selected])))]))
     chosen_imgs = np.stack((img for img in chosen_img_list))
     return np.mean(np.float32(chosen_imgs), axis=0)
+
+def minibatch_multi_step_selection(episode_list, stacked_img_num, frame_stride, batch_size, prediction_step, img_dict = None, dataset = None):
+    """
+    """
+    selected_index = []
+    for _ in range(0, batch_size):
+        episode = numpy.random.choice(episode_list)
+        if (img_dict is not None):
+            episode_size = len(img_dict[episode])
+        else:
+            episode_size = dataset[episode].shape[0]
+        selected_index.append([episode, numpy.random.choice(range(frame_stride * (stacked_img_num - 1), episode_size - prediction_step))])
+    selected_index.sort(key=lambda t: t[0])
+    return selected_index
+
+def minibatch_multi_step(episode_list, action_file_dict, reward_file_dict, stacked_img_num, frame_stride, batch_size,  prediction_step, img_dict = None, dataset = None, selected_index = None):
+    """
+    """
+    if (selected_index is None):
+        random_selection = minibatch_multi_step_selection(episode_list, stacked_img_num, frame_stride, batch_size, prediction_step, img_dict = img_dict, dataset = dataset)
+    else:
+        random_selection = selected_index
+    previous_episode = ''
+    stacked_img_list = []
+    ground_truth_list = []
+    rewards_cur_episode = []
+    actions_cur_episode = []
+    reward_column = []
+    action_column = []
+    for index_now in random_selection:
+        episode, frame = index_now
+        if (episode != previous_episode):
+            reward_file = open(reward_file_dict[episode], 'r')
+            rewards_raw = reward_file.read().split('\n')
+            rewards_cur_episode = [float(r) for r in rewards_raw if len(r) > 0]
+            action_file = open(action_file_dict[episode], 'r')
+            actions_raw = action_file.read().split()
+            actions_cur_episode = [float(a) for a in actions_raw if len(a) > 0]
+            previous_episode = episode
+        reward_column.append(rewards_cur_episode[frame : frame + prediction_step])
+        action_column.append(actions_cur_episode[frame : frame + prediction_step])
+        if (dataset is None):
+            multi_step_ground_truth_list = [get_gray_img_tensor(img_dict[episode][frame + frame_predicted]) for frame_predicted in range(1, prediction_step + 1)]
+            previous_img_list = [get_gray_img_tensor(img_dict[episode][frame - frame_cnt * frame_stride]) for frame_cnt in range(0, stacked_img_num)]
+        else:
+            multi_step_ground_truth_list = [dataset[episode][frame + frame_predicted] for frame_predicted in range(1, prediction_step + 1)]
+            previous_img_list = [dataset[episode][frame - frame_cnt * frame_stride] for frame_cnt in range(0, stacked_img_num)]
+        img_size_0 = previous_img_list[0].shape[0]
+        img_size_1 = previous_img_list[0].shape[1]
+        channel_num = stacked_img_num * previous_img_list[0].shape[2]
+        stacked_img_list.append(np.stack((img for img in previous_img_list), axis = 2).reshape(img_size_0, img_size_1, channel_num))
+        channel_num = prediction_step * previous_img_list[0].shape[2]
+        ground_truth_list.append(np.stack((img for img in multi_step_ground_truth_list), axis = 2).reshape(img_size_0, img_size_1, channel_num))
+    stacked_img_tensor = np.stack((stacked_img for stacked_img in stacked_img_list))
+    ground_truth_tensor = np.stack((multi_step_prediction for multi_step_prediction in ground_truth_list))
+    reward_tensor = np.array(reward_column, ndmin = 2)
+    action_tensor = np.array(action_column, ndmin = 2)
+    batch = [stacked_img_tensor, reward_tensor, action_tensor, ground_truth_tensor]
+    return [batch, random_selection]
+

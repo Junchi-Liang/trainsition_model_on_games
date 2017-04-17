@@ -1,6 +1,8 @@
 import tensorflow as tf
 import numpy as np
 import nn_utils.cnn_utils
+import data_utils.data_read_util
+import data_utils.img_process_util
 
 class Multi_Step_net:
     """
@@ -32,12 +34,12 @@ class Multi_Step_net:
 
         self.step_train_net_layer = []
         self.step_train_net_param = []
-        for step_cur int range(step_prediction):
+        for step_cur in range(step_prediction):
             if (step_cur == 0):
                 layer_cur, param_cur = self.construct_network_computational_graph(batch_size = training_batch_size)
             else:
                 concat_layer = tf.concat([self.step_train_net_layer[step_cur - 1]["deconv3"], \
-                                   self.step_train_net_layer[step_cur - 1]["img_stacked_input_placeholder"][:, :, :, 0 : step_prediction - 1]], axis = 3)
+                                   self.step_train_net_layer[step_cur - 1]["img_stacked_input_placeholder"][:, :, :, 0 : self.num_stack - 1]], axis = 3)
                 layer_cur, param_cur = self.construct_network_computational_graph(batch_size = training_batch_size, input_layer = concat_layer)
             self.step_train_net_layer.append(layer_cur)
             self.step_train_net_param.append(param_cur)
@@ -50,7 +52,7 @@ class Multi_Step_net:
             self.train_multi_step_loss = self.train_multi_step_loss + self.mean_square_loss(self.step_train_net_layer[step_cur]["deconv3"],\
                                             self.step_train_net_layer[step_cur]["frame_next_img_placeholder"])
         self.train_step = tf.train.RMSPropOptimizer(1e-4,
-                                                    momentum=0.9).minimize(self.train_loss, var_list=self.param)
+                                                    momentum=0.9).minimize(self.train_multi_step_loss)
 
 
     def construct_network_computational_graph(self, batch_size, input_layer = None, params_shared = None):
@@ -65,7 +67,7 @@ class Multi_Step_net:
         """
         params = {}
         if (params_shared is None):
-            params["w_conv1"] = nn_utils.cnn_utils.weight_convolution_normal([6, 6], stacked_img_num, 64, 0.1)
+            params["w_conv1"] = nn_utils.cnn_utils.weight_convolution_normal([6, 6], self.num_stack, 64, 0.1)
             params["b_conv1"] = nn_utils.cnn_utils.bias_convolution(64, 0.1)
 
             params["w_conv2"] = nn_utils.cnn_utils.weight_convolution_normal([6, 6], 64, 64, 0.1)
@@ -99,7 +101,7 @@ class Multi_Step_net:
         else:
             params = params_shared
         layers = {}
-        if (input_layers is None):
+        if (input_layer is None):
             layers["img_stacked_input_placeholder"] = tf.placeholder(tf.float32,\
                                                         shape=[batch_size, self.img_height,\
                                                         self.img_width, self.num_stack *\
@@ -195,3 +197,33 @@ class Multi_Step_net:
         loss = tf.reduce_mean(tf.square(net_output_gradient - ground_truth))
         return loss
 
+    def train_iteration(self, tf_sess = None, batch = None, arg_for_batch = None, arg_for_normalization = None, display = True):
+        """
+        """
+        if (batch is not None):
+            batch_input = batch
+        else:
+            episode_list, action_file_dict, reward_file_dict, stacked_img_num, frame_stride, batch_size,  prediction_step, img_dict, dataset, selected_index = arg_for_batch
+            batch_input, _ = data_utils.data_read_util.minibatch_multi_step(episode_list, action_file_dict, reward_file_dict, stacked_img_num, frame_stride, batch_size,  prediction_step, img_dict, dataset, selected_index)
+        stacked_img_tensor, reward_tensor, action_tensor, ground_truth_tensor = batch_input
+        feed_for_net = {}
+        if (arg_for_normalization is None):
+            feed_for_net[self.step_train_net_layer[0]["img_stacked_input_placeholder"]] = stacked_img_tensor
+        else:
+            normalized_img = data_utils.img_process_util.img_normalize(stacked_img_tensor, arg_for_normalization)
+            feed_for_net[self.step_train_net_layer[0]["img_stacked_input_placeholder"]] = normalized_img
+        for i in range(self.num_step):
+            feed_for_net[self.step_train_net_layer[i]["action_input_placeholder"]] = data_utils.data_read_util.one_hot_action(action_tensor[:, i], self.num_act)
+            if (arg_for_normalization is None):
+                feed_for_net[self.step_train_net_layer[i]["frame_next_img_placeholder"]] = ground_truth_tensor[:, :, :, i:i+1]
+            else:
+                normalized_ground_truth = data_utils.img_process_util.img_normalize(ground_truth_tensor[:, :, :, i:i+1], arg_for_normalization)
+                feed_for_net[self.step_train_net_layer[i]["frame_next_img_placeholder"]] = normalized_ground_truth
+        self.train_step.run(feed_dict = feed_for_net)
+        if (display):
+            print '--overall loss:', tf_sess.run(self.train_multi_step_loss, feed_dict = feed_for_net)
+            for step in range(self.num_step):
+                print '---loss for prediction #', step, ':', tf_sess.run(\
+                                                                         self.mean_square_loss(self.step_train_net_layer[step]["deconv3"],\
+                                                                         self.step_train_net_layer[step]["frame_next_img_placeholder"]),\
+                                                                         feed_dict = feed_for_net)
