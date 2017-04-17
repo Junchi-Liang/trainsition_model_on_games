@@ -47,13 +47,12 @@ class Multi_Step_net:
         self.net_predict_layer, _ = self.construct_network_computational_graph(batch_size = 1, params_shared = self.step_train_net_param[0])
         if  (not(test_batch_size is None)):
             self.net_test = self.construct_network_computational_graph(batch_size = test_batch_size, params_shared = self.step_train_net_param[0])
-        self.train_multi_step_loss = self.mean_square_loss(self.step_train_net_layer[0]["deconv3"], self.step_train_net_layer[0]["frame_next_img_placeholder"])
+        self.train_multi_step_loss = []
+        self.train_multi_step_loss.append(self.mean_square_loss(self.step_train_net_layer[0]["deconv3"], self.step_train_net_layer[0]["frame_next_img_placeholder"]))
         for step_cur in range(1, step_prediction):
-            self.train_multi_step_loss = self.train_multi_step_loss + self.mean_square_loss(self.step_train_net_layer[step_cur]["deconv3"],\
-                                            self.step_train_net_layer[step_cur]["frame_next_img_placeholder"])
-        self.train_step = tf.train.RMSPropOptimizer(1e-4,
-                                                    momentum=0.9).minimize(self.train_multi_step_loss)
-
+            self.train_multi_step_loss.append(self.train_multi_step_loss[step_cur - 1] + self.mean_square_loss(self.step_train_net_layer[step_cur]["deconv3"],\
+                                            self.step_train_net_layer[step_cur]["frame_next_img_placeholder"]))
+        self.train_step = [tf.train.RMSPropOptimizer(1e-4, momentum = 0.9).minimize(loss) for loss in self.train_multi_step_loss]
 
     def construct_network_computational_graph(self, batch_size, input_layer = None, params_shared = None):
         """
@@ -197,7 +196,7 @@ class Multi_Step_net:
         loss = tf.reduce_mean(tf.square(net_output_gradient - ground_truth))
         return loss
 
-    def train_iteration(self, tf_sess = None, batch = None, arg_for_batch = None, arg_for_normalization = None, display = True):
+    def train_iteration(self, accumulated_step, tf_sess = None, batch = None, arg_for_batch = None, arg_for_normalization = None, display = True):
         """
         """
         if (batch is not None):
@@ -219,10 +218,10 @@ class Multi_Step_net:
             else:
                 normalized_ground_truth = data_utils.img_process_util.img_normalize(ground_truth_tensor[:, :, :, i:i+1], arg_for_normalization)
                 feed_for_net[self.step_train_net_layer[i]["frame_next_img_placeholder"]] = normalized_ground_truth
-        self.train_step.run(feed_dict = feed_for_net)
+        self.train_step[accumulated_step].run(feed_dict = feed_for_net)
         if (display):
-            print '--overall loss:', tf_sess.run(self.train_multi_step_loss, feed_dict = feed_for_net)
-            for step in range(self.num_step):
+            print '--overall loss:', tf_sess.run(self.train_multi_step_loss[accumulated_step - 1], feed_dict = feed_for_net)
+            for step in range(accumulated_step):
                 print '---loss for prediction #', step, ':', tf_sess.run(\
                                                                          self.mean_square_loss(self.step_train_net_layer[step]["deconv3"],\
                                                                          self.step_train_net_layer[step]["frame_next_img_placeholder"]),\

@@ -24,13 +24,14 @@ sess = tf.InteractiveSession()
 sess.run(tf.global_variables_initializer())
 
 num_iter = 1000
+accumulated_step = 1
 
 for i in range(num_iter):
     if (i % 10 == 0 or i == num_iter - 1):
         print '-iteration #', i
-        net_mul.train_iteration(tf_sess = sess, arg_for_batch = arg_for_batch, arg_for_normalization = mean_img, display = True)
+        net_mul.train_iteration(tf_sess = sess, accumulated_step = accumulated_step, arg_for_batch = arg_for_batch, arg_for_normalization = mean_img, display = True)
     else:
-        net_mul.train_iteration(tf_sess = sess, arg_for_batch = arg_for_batch, arg_for_normalization = mean_img, display = False)
+        net_mul.train_iteration(tf_sess = sess, accumulated_step = accumulated_step, arg_for_batch = arg_for_batch, arg_for_normalization = mean_img, display = False)
 
 
 
