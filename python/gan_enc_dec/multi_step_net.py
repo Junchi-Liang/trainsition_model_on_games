@@ -52,7 +52,12 @@ class Multi_Step_net:
         for step_cur in range(1, step_prediction):
             self.train_multi_step_loss.append(self.train_multi_step_loss[step_cur - 1] + self.mean_square_loss(self.step_train_net_layer[step_cur]["deconv3"],\
                                             self.step_train_net_layer[step_cur]["frame_next_img_placeholder"]))
-        self.train_step = [tf.train.RMSPropOptimizer(1e-4, momentum = 0.9).minimize(loss) for loss in self.train_multi_step_loss]
+        self.train_step = []
+        for step_cur in range(step_prediction):
+            if (step_cur < 3):
+                self.train_step.append(tf.train.RMSPropOptimizer(1e-4, momentum = 0.9).minimize(self.train_multi_step_loss[step_cur]))
+            else:
+                self.train_step.append(tf.train.RMSPropOptimizer(1e-5, momentum = 0.9).minimize(self.train_multi_step_loss[step_cur]))
 
     def construct_network_computational_graph(self, batch_size, input_layer = None, params_shared = None):
         """
@@ -220,7 +225,7 @@ class Multi_Step_net:
                 feed_for_net[self.step_train_net_layer[i]["frame_next_img_placeholder"]] = normalized_ground_truth
         self.train_step[accumulated_step - 1].run(feed_dict = feed_for_net)
         if (display):
-            print '--overall loss for ', accumulated_step,'layers:', tf_sess.run(self.train_multi_step_loss[accumulated_step - 1], feed_dict = feed_for_net)
+            print '--overall loss for', accumulated_step,'layers:', tf_sess.run(self.train_multi_step_loss[accumulated_step - 1], feed_dict = feed_for_net)
             for step in range(accumulated_step):
                 print '---loss for prediction #', step, ':', tf_sess.run(\
                                                                          self.mean_square_loss(self.step_train_net_layer[step]["deconv3"],\
