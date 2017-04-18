@@ -218,9 +218,9 @@ class Multi_Step_net:
             else:
                 normalized_ground_truth = data_utils.img_process_util.img_normalize(ground_truth_tensor[:, :, :, i:i+1], arg_for_normalization)
                 feed_for_net[self.step_train_net_layer[i]["frame_next_img_placeholder"]] = normalized_ground_truth
-        self.train_step[accumulated_step].run(feed_dict = feed_for_net)
+        self.train_step[accumulated_step - 1].run(feed_dict = feed_for_net)
         if (display):
-            print '--overall loss:', tf_sess.run(self.train_multi_step_loss[accumulated_step - 1], feed_dict = feed_for_net)
+            print '--overall loss for ', accumulated_step,'layers:', tf_sess.run(self.train_multi_step_loss[accumulated_step - 1], feed_dict = feed_for_net)
             for step in range(accumulated_step):
                 print '---loss for prediction #', step, ':', tf_sess.run(\
                                                                          self.mean_square_loss(self.step_train_net_layer[step]["deconv3"],\
