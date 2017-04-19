@@ -55,9 +55,9 @@ class Multi_Step_net:
         self.train_step = []
         for step_cur in range(step_prediction):
             if (step_cur < 3):
-                self.train_step.append(tf.train.RMSPropOptimizer(1e-4, momentum = 0.9).minimize(self.train_multi_step_loss[step_cur]))
+                self.train_step.append(tf.train.RMSPropOptimizer(1e-4, momentum = 0.9, epsilon=1e-8).minimize(self.train_multi_step_loss[step_cur]))
             else:
-                self.train_step.append(tf.train.RMSPropOptimizer(1e-5, momentum = 0.9).minimize(self.train_multi_step_loss[step_cur]))
+                self.train_step.append(tf.train.RMSPropOptimizer(1e-5, momentum = 0.9, epsilon=1e-8).minimize(self.train_multi_step_loss[step_cur]))
 
     def construct_network_computational_graph(self, batch_size, input_layer = None, params_shared = None):
         """
