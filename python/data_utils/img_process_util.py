@@ -4,6 +4,7 @@ import glob
 import numpy as np
 import numpy.random
 import scipy.misc
+import matplotlib.pyplot as plt
 
 def img_normalize(img, mean_img):
     """
@@ -21,3 +22,27 @@ def img_normalize(img, mean_img):
     else:
         img_processed = (np.float32(img) - np.float32(mean_img)) / 255.0
     return img_processed
+
+def dense_optical_flow_to_quivers(flow):
+    """
+        flow : numpy.ndarray
+        flow - dense optical flow computed from opencv (e.g. optical flow from cv2.calcOpticalFlowFarneback)
+        return [X, Y, U, V]
+        parameters for matplotlib.pyplot.quiver
+        X : 2d array
+        X - The x coordinates of the arrow locations
+        Y : 2d array
+        Y - The y coordinates of the arrow locations
+        U : 2d array
+        U - The x components of the arrow vectors
+        V : 2d array
+        V - The y components of the arrow vectors
+    """
+    X, Y = np.meshgrid(np.arange(0.5, flow.shape[0], 1), np.arange(0.5, flow.shape[1], 1))
+    U = np.zeros(X.shape)
+    V = np.zeros(X.shape)
+    for i in range(U.shape[0]):
+        for j in range(U.shape[1]):
+            U[i, j] = flow[U.shape[0] - 1 - i, j, 0]
+            V[i, j] = -flow[U.shape[0] - 1 - i, j, 1]
+    return [X, Y, U, V]
