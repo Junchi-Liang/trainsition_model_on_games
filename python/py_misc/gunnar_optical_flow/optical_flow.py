@@ -94,3 +94,66 @@ def collect_pixels(img, p_x, p_y, size, covariance):
     w = np.asarray(w_list, np.float32)
     y = np.asarray(y_list, np.float32)
     return [w, x, y]
+
+def optical_flow_for_fixed_scale(img_prev, img_next, poly_filter_size, win_size, covariance, iteration = 1, flow_input = None):
+    """
+        compute optical flow with Gunnar's algorithm on the original scale
+        img_prev : np.array
+        img_prev - previous image, 2d array
+        img_next : np.array
+        img_next - next image, 2d array
+        poly_filter_size : int
+        poly_filter_size - size for the filter used for fitting the polynomial
+        win_size : int
+        win_size - size of the neighbor for optial flow estimation
+        covariance : array_like
+        covariance - covariance matrix for the filter
+        iteration : int
+        iteration - number of iterations
+        flow_input : np.ndarray
+        flow_input - flow as prior knowledge, 3d array, shape (img.shape[0], img.shape[1], 2)
+        return flow
+        flow : np.ndarray
+        flow - output optical flow, 3d array, shape (img.shape[0], img.shapep[1], 2))
+    """
+    if (flow_input is None):
+        flow_prior = np.zero([img_prev.shape[0], img_prev.shape[1], 2], np.float32)
+    else:
+        flow_prior = flow_input
+    A_1 = np.zeros([img_prev.shape[0], img_prev.shape[1], 2, 2])
+    A_2 = np.zeros([img_prev.shape[0], img_prev.shape[1], 2, 2])
+    B_1 = np.zeros([img_prev.shape[0], img_prev.shape[1], 2, 1])
+    B_2 = np.zeros([img_prev.shape[0], img_prev.shape[1], 2, 1])
+    for i in range(img_prev.shape[0]):
+        for j in range(img_prev.shape[1]):
+            w, x, y = collect_pixels(img_prev, i, j, poly_filter_size, covariance)
+            a, b, c = polynomial_fit(w, x, y)
+            A_1[i, j, :, :] = a
+            B_1[i, j, :, :] = b
+            w, x, y = collect_pixels(img_next, i, j, poly_filter_size, covariance)
+            a, b, c = polynomial_fit(w, x, y)
+            A_2[i, j, :, :] = a
+            B_2[i, j, :, :] = b
+    flow = np.zeros([img_prev.shape[0], img_prev.shape[1], 2], np.float32)
+    for it in range(iteration):
+        for i in range(img_prev.shape[0]):
+            for j in range(img_prev.shape[1]):
+                w = normal_filter(win_size, covariance)
+                left_term = np.zeros([2, 2])
+                right_term = np.zeros([2, 1])
+                for x1 in range(i - win_size, i + win_size + 1):
+                    for x2 in range(j - win_size, j + win_size + 1):
+                        if (x1 >= 0 and x1 < img_prev.shape[0] and x2 >= 0 and x2 < img_prev.shape[1]):
+                            x1_estimate = int(x1 + flow_prior[x1, x2, 0])
+                            x2_estimate = int(x2 + flow_prior[x1, x2, 1])
+                            if (x1_estimate >= 0 and x1_estimate < img_prev.shape[0] and x2_estimate >= 0 and x2_estimate < img_prev.shape[1]):
+                                A = 0.5 * (A_1[i, j, :, :] + A_2[x1_estimate, x2_estimate, :, :])
+                                A_T = A.transpose()
+                                AD_prior = np.matmul(A, (flow_prior[x1, x2, :]).reshape([2, 1]))
+                                delta_b = -0.5 * (B_2[x1_estimate, x2_estimate, :, :] - B_1[x1, x2, :, :]) + AD_prior
+                                w_neighbor = w[x1 - (i - win_size), x2 - (j - win_size)]
+                                left_term = left_term + w_neighbor * (np.matmul(A_T, A))
+                                right_term = right_term + w_neighbor * (np.matmul(A_T, delta_b))
+                d_x = np.matmul(linalg.inv(left_term), right_term)
+                flow[i, j, :] = d_x[:, 0]
+        #TODO: start here
