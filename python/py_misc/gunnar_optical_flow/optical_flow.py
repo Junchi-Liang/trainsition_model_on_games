@@ -135,6 +135,9 @@ def optical_flow_for_fixed_scale(img_prev, img_next, poly_filter_size, win_size,
             A_2[i, j, :, :] = a
             B_2[i, j, :, :] = b
     flow = np.zeros([img_prev.shape[0], img_prev.shape[1], 2], np.float32)
+    #TODO: debug
+    print 'start computing the flow'
+    #TODO: debug end
     for it in range(iteration):
         for i in range(img_prev.shape[0]):
             for j in range(img_prev.shape[1]):
@@ -154,7 +157,10 @@ def optical_flow_for_fixed_scale(img_prev, img_next, poly_filter_size, win_size,
                                 w_neighbor = w[x1 - (i - win_size), x2 - (j - win_size)]
                                 left_term = left_term + w_neighbor * (np.matmul(A_T, A))
                                 right_term = right_term + w_neighbor * (np.matmul(A_T, delta_b))
-                d_x = np.matmul(linalg.inv(left_term), right_term)
+                if (left_term[0, 0] * left_term[1, 1] - left_term[1, 0] * left_term[0, 1] == 0):
+                    d_x = np.zeros([2, 1])
+                else:
+                    d_x = np.matmul(linalg.inv(left_term), right_term)
                 flow[i, j, :] = d_x[:, 0]
         flow_prior = flow.copy()
     return flow
