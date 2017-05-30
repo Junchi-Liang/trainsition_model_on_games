@@ -156,4 +156,5 @@ def optical_flow_for_fixed_scale(img_prev, img_next, poly_filter_size, win_size,
                                 right_term = right_term + w_neighbor * (np.matmul(A_T, delta_b))
                 d_x = np.matmul(linalg.inv(left_term), right_term)
                 flow[i, j, :] = d_x[:, 0]
-        #TODO: start here
+        flow_prior = flow.copy()
+    return flow
