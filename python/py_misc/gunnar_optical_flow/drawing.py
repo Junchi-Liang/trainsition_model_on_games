@@ -47,3 +47,11 @@ def random_motion_pictures(speed_max, c, img_height, img_width):
     """
     x1 = np.random.choice(img_height, 1)[0]
     x2 = np.random.choice(img_width, 1)[0]
+    while (True):
+        x1_next = x1 + np.random.choice(speed_max * 2 + 1, 1)[0] - speed_max
+        x2_next = x2 + np.random.choice(speed_max * 2 + 1, 1)[0] - speed_max
+        if (x1_next >= 0 and x1_next < img_height and x2_next >= 0 and x2_next < img_width):
+            img_next = circle_object(x1_next, x2_next, c, img_height, img_width)
+            break
+    img_prev = circle_object(x1, x2, c, img_height, img_width)
+    return [img_prev, img_next]
