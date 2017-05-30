@@ -117,7 +117,7 @@ def optical_flow_for_fixed_scale(img_prev, img_next, poly_filter_size, win_size,
         flow - output optical flow, 3d array, shape (img.shape[0], img.shapep[1], 2))
     """
     if (flow_input is None):
-        flow_prior = np.zero([img_prev.shape[0], img_prev.shape[1], 2], np.float32)
+        flow_prior = np.zeros([img_prev.shape[0], img_prev.shape[1], 2], np.float32)
     else:
         flow_prior = flow_input
     A_1 = np.zeros([img_prev.shape[0], img_prev.shape[1], 2, 2])
