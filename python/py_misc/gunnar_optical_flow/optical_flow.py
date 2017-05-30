@@ -39,12 +39,12 @@ def polynomial_fit(w, x, y):
     """
     n = x.shape[1]
     w_matrix = np.zeros([n, n], np.float32)
-    x_matrix = np.zeros([6, n], np.float32)
+    x_matrix = np.zeros([n, 6], np.float32)
     y_vector = np.float32(y.reshape([n, 1]))
     for i in range(n):
         w_matrix[i, i] = w[i]
         x1, x2 = x[:, i]
-        x_matrix[:, i] = [x1 * x1, x1 * x2, x2 * x2, x1, x2, 1.0]
+        x_matrix[i, :] = [x1 * x1, x1 * x2, x2 * x2, x1, x2, 1.0]
     x_T = x_matrix.transpose()
     right_side = np.matmul(x_T, np.matmul(w_matrix, y_vector))
     left_side = np.matmul(x_T, np.matmul(w_matrix, x_matrix))
