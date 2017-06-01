@@ -28,6 +28,28 @@ def circle_object(p_x, p_y, c, img_height, img_width):
                     output[i + p_x, j + p_y] = 255
     return output
 
+def add_circle_to_image(I, c1, c2, r, c):
+    """
+        add a circle to an image
+        I : np.array
+        I - 2d array, the image
+        c1 : int
+        c1 - center of the circle
+        c2 : int
+        c2 - center of the circle
+        r : int
+        r - radius of the circle
+        c : int
+        c - grayscale value of the circle
+    """
+    for i in range(-r, r + 1):
+        for j in range(-r, r + 1):
+            if (i ** 2 + j ** 2 < c ** 2):
+                x1 = c1 + i
+                x2 = c2 + j
+                if (x1 >= 0 and x1 < I.shape[0] and x2 >= 0 and x2 < I.shape[1]):
+                    I[x1, x2] = c
+
 def random_motion_pictures(speed_max, c, img_height, img_width):
     """
         generate two consecutive image of an moving object
