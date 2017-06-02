@@ -123,3 +123,48 @@ def random_motion_pictures(speed_max, c, img_height, img_width):
             break
     img_prev = circle_object(x1, x2, c, img_height, img_width)
     return [img_prev, img_next]
+
+def random_multiple_moving_objects(num_obj, speed_max, size_max, img_height, img_width):
+    """
+       generate two consecutive image of multiple moving objects
+       (for now, objects can be a circle, triangle, or square)
+       num_obj : int
+       num_obj - number of objects
+       img_height : int
+       img_height - height of the image
+       img_width : int
+       img_width - width of the image
+       speed_max : int
+       speed_max - |x1 - x1'| < speed_max and |x2 - x2'| < speed_max
+       size_max : int
+       size_max : max size of objects
+       return [img_prev, img_next]
+       img_prev : np.ndarray
+       img_prev - first image
+       img_next : np.ndarray
+       img_next - next image
+    """
+    img_prev = np.zeros([img_height, img_width], np.uint8)
+    img_next = np.zeros([img_height, img_width], np.uint8)
+    for i in range(num_obj):
+        grey_value = int(255.0 * (float(i + 1) / float(num_obj)))
+        x1 = np.random.choice(img_height, 1)[0]
+        x2 = np.random.choice(img_width, 1)[0]
+        size = np.random.choice(size_max, 1)[0] + 1
+        while (True):
+            x1_next = x1 + np.random.choice(speed_max * 2 + 1, 1)[0] - speed_max
+            x2_next = x2 + np.random.choice(speed_max * 2 + 1, 1)[0] - speed_max
+            if (x1_next >= 0 and x1_next < img_height and x2_next >= 0 and x2_next < img_width):
+                break
+        shape = np.random.choice(3, 1)[0]
+        obj_size = 1 + np.random.choice(size_max, 1)[0]
+        if (shape == 0):
+            add_circle_to_image(img_prev, x1, x2, obj_size, grey_value)
+            add_circle_to_image(img_next, x1_next, x2_next, obj_size, grey_value)
+        elif (shape == 1):
+            add_triangle_to_image(img_prev, x1, x2, obj_size, grey_value)
+            add_triangle_to_image(img_next, x1_next, x2_next, obj_size, grey_value)
+        else:
+            add_square_to_image(img_prev, x1, x2, obj_size, grey_value)
+            add_square_to_image(img_next, x1_next, x2_next, obj_size, grey_value)
+    return [img_prev, img_next]
