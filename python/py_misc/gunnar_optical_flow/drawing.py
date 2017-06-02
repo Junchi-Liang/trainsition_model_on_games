@@ -74,6 +74,28 @@ def add_triangle_to_image(I, c1, c2, h, c):
             if (x1 >= 0 and x1 < I.shape[0] and x2 >= 0 and x2 < I.shape[1]):
                 I[x1, x2] = c
 
+def add_square_to_image(I, c1, c2, r, c):
+    """
+        add a square to the image
+        I : np.array
+        I - 2d array, the image
+        c1 : int
+        c1 : location of the square
+        c2 : int
+        c2 : location of the square
+        h : int
+        h - size of the square
+        c : int
+        c - grayscale value of the square
+    """
+    for i in range(-r, r + 1):
+        for j in range(-r, r + 1):
+            if (abs(i) + abs(j) <= r):
+                x1 = c1 + i
+                x2 = c2 + j
+                if (x1 >= 0 and x1 < I.shape[0] and x2 >= 0 and x2 < I.shape[1]):
+                    I[x1, x2] = c
+
 def random_motion_pictures(speed_max, c, img_height, img_width):
     """
         generate two consecutive image of an moving object
