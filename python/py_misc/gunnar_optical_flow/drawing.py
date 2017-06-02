@@ -50,6 +50,30 @@ def add_circle_to_image(I, c1, c2, r, c):
                 if (x1 >= 0 and x1 < I.shape[0] and x2 >= 0 and x2 < I.shape[1]):
                     I[x1, x2] = c
 
+def add_triangle_to_image(I, c1, c2, h, c):
+    """
+        add a triangle to an image
+        I : np.array
+        I - 2d array, the image
+        c1 : int
+        c1 : location of the triangle
+        c2 : int
+        c2 : location of the triangle
+        h : int
+        h - height of the triangle
+        c : int
+        c - grayscale value of the triangle
+    """
+    for i in range(0, h):
+        for j in range(0, h - i):
+            x2 = c2 - i
+            x1 = c1 + j
+            if (x1 >= 0 and x1 < I.shape[0] and x2 >= 0 and x2 < I.shape[1]):
+                I[x1, x2] = c
+            x2 = c2 + i
+            if (x1 >= 0 and x1 < I.shape[0] and x2 >= 0 and x2 < I.shape[1]):
+                I[x1, x2] = c
+
 def random_motion_pictures(speed_max, c, img_height, img_width):
     """
         generate two consecutive image of an moving object
