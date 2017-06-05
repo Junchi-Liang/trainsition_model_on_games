@@ -232,3 +232,23 @@ def average_optical_flow_from_motion_field(img_prev, img_next, motion_field):
                 flow[i, j, 0] = float(flow_for_segment[img_prev[i, j]][0]) / float(cnt_for_segment[img_prev[i, j]])
                 flow[i, j, 1] = float(flow_for_segment[img_prev[i, j]][1]) / float(cnt_for_segment[img_prev[i, j]])
     return flow
+
+def reconstruct_from_flow(img_prev, flow):
+    """
+        predict the next frame given previous image and the optical flow or motion field
+        img_prev : np.array
+        img_prev - 2d array, previous frame
+        flow : np.ndarray
+        flow - 3d array, shape (img_prev.shape[0], img_prev.shape[1], 2), optical flow or motion field
+        return img_next
+        img_next : np.array
+        img_next - 2d array, predicted next frame
+    """
+    img_next = np.zeros(img_prev.shape, np.uint8)
+    for i in range(img_prev.shape[0]):
+        for j in range(img_prev.shape[1]):
+            x1 = int(i + flow[i, j, 0])
+            x2 = int(j + flow[i, j, 1])
+            if (img_prev[i, j] > 0 and x1 >= 0 and x1 < img_prev.shape[0] and x2 >= 0 and x2 < img_prev.shape[1]):
+                img_next[x1, x2] = img_prev[i, j]
+    return img_next
