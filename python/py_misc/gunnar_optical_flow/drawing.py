@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import scipy.misc
+import numpy.random
 
 def circle_object(p_x, p_y, c, img_height, img_width):
     """
@@ -124,7 +125,7 @@ def random_motion_pictures(speed_max, c, img_height, img_width):
     img_prev = circle_object(x1, x2, c, img_height, img_width)
     return [img_prev, img_next]
 
-def random_multiple_moving_objects(num_obj, speed_max, size_max, img_height, img_width):
+def random_multiple_moving_objects(num_obj, speed_max, size_max, img_height, img_width, noise_in_prev = False, std_in_prev = None, noise_in_next = False, std_in_next = None):
     """
        generate two consecutive image of multiple moving objects
        (for now, objects can be a circle, triangle, or square)
@@ -138,14 +139,25 @@ def random_multiple_moving_objects(num_obj, speed_max, size_max, img_height, img
        speed_max - |x1 - x1'| < speed_max and |x2 - x2'| < speed_max
        size_max : int
        size_max : max size of objects
+       noise_in_prev : boolean
+       noise_in_prev - if the previous image should contain noise
+       std_in_prev : None or float
+       std_in_prev - standard deviation of noise in previous image
+       noise_in_next : boolean
+       noise_in_next - if the next image should contain noise
+       std_in_next : None of float
+       std_in_next - standard deviation of noise in next image
        return [img_prev, img_next]
        img_prev : np.ndarray
        img_prev - first image
        img_next : np.ndarray
        img_next - next image
+       motion_field : np.ndarray
+       motion_field - 3d array, shape (img_height, img_width, 2), motion field
     """
     img_prev = np.zeros([img_height, img_width], np.uint8)
     img_next = np.zeros([img_height, img_width], np.uint8)
+    motion_field = np.zeros([img_height, img_width, 2])
     for i in range(num_obj):
         grey_value = int(255.0 * (float(i + 1) / float(num_obj)))
         x1 = np.random.choice(img_height, 1)[0]
@@ -167,4 +179,21 @@ def random_multiple_moving_objects(num_obj, speed_max, size_max, img_height, img
         else:
             add_square_to_image(img_prev, x1, x2, obj_size, grey_value)
             add_square_to_image(img_next, x1_next, x2_next, obj_size, grey_value)
-    return [img_prev, img_next]
+        for p1 in range(x1 - obj_size, x1 + obj_size + 1):
+            for p2 in range(x2 - obj_size, x2 + obj_size + 1):
+                if (p1 >= 0 and p1 < img_height and p2 >= 0 and p2 < img_width):
+                    motion_field[p1, p2, 0] = x1_next - x1
+                    motion_field[p1, p2, 1] = x2_next - x2
+    if (noise_in_prev):
+        for i in range(img_height):
+            for j in range(img_width):
+                noise = numpy.random.normal(scale = std_in_prev)
+                v = min(max(img_prev[i, j] + noise, 0), 255)
+                img_prev[i, j] = int(v)
+    if (noise_in_next):
+        for i in range(img_height):
+            for j in range(img_width):
+                noise = numpy.random.normal(scale = std_in_next)
+                v = min(max(img_next[i, j] + noise, 0), 255)
+                img_next[i, j] = int(v)
+    return [img_prev, img_next, motion_field]
