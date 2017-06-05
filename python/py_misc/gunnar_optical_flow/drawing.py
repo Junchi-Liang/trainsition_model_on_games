@@ -181,7 +181,7 @@ def random_multiple_moving_objects(num_obj, speed_max, size_max, img_height, img
             add_square_to_image(img_next, x1_next, x2_next, obj_size, grey_value)
         for p1 in range(x1 - obj_size, x1 + obj_size + 1):
             for p2 in range(x2 - obj_size, x2 + obj_size + 1):
-                if (p1 >= 0 and p1 < img_height and p2 >= 0 and p2 < img_width):
+                if (p1 >= 0 and p1 < img_height and p2 >= 0 and p2 < img_width and img_prev[p1, p2] == grey_value):
                     motion_field[p1, p2, 0] = x1_next - x1
                     motion_field[p1, p2, 1] = x2_next - x2
     if (noise_in_prev):
@@ -197,3 +197,38 @@ def random_multiple_moving_objects(num_obj, speed_max, size_max, img_height, img
                 v = min(max(img_next[i, j] + noise, 0), 255)
                 img_next[i, j] = int(v)
     return [img_prev, img_next, motion_field]
+
+def average_optical_flow_from_motion_field(img_prev, img_next, motion_field):
+    """
+        average optical flow (least square solution) given matching between pixels in previous image and pixels in next image
+        img_prev : np.array
+        img_prev - 2d array, previous image
+        img_next : np.array
+        img_next - 2d array, next image
+        motion_field : np.ndarray
+        motion_field - 3d array, shape (img_prev.shape[0], img_prev.shape[1], 2), motion field
+        return flow
+        flow : np.ndarray
+        flow - 3d array, shape (img_prev.shape[0], img_prev.shape[1], 2), result optical flow
+    """
+    flow_for_segment = {}
+    cnt_for_segment = {}
+    for i in range(img_prev.shape[0]):
+        for j in range(img_prev.shape[1]):
+            x1 = int(i + motion_field[i, j , 0])
+            x2 = int(j + motion_field[i, j , 1])
+            if (x1 >= 0 and x1 < img_next.shape[0] and x2 >= 0 and x2 < img_next.shape[1] and img_prev[i, j] > 0 and img_prev[i, j] == img_next[x1, x2]):
+                if (img_prev[i, j] in flow_for_segment):
+                    flow_for_segment[img_prev[i, j]][0] = flow_for_segment[img_prev[i, j]][0] + motion_field[i, j, 0]
+                    flow_for_segment[img_prev[i, j]][1] = flow_for_segment[img_prev[i, j]][1] + motion_field[i, j, 1]
+                    cnt_for_segment[img_prev[i, j]] = 1 + cnt_for_segment[img_prev[i, j]]
+                else:
+                    cnt_for_segment[img_prev[i, j]] = 1
+                    flow_for_segment[img_prev[i, j]] = [motion_field[i, j, 0], motion_field[i, j, 1]]
+    flow = np.zeros([img_prev.shape[0], img_prev.shape[1], 2])
+    for i in range(flow.shape[0]):
+        for j in range(flow.shape[1]):
+            if (img_prev[i, j] > 0 and img_prev[i, j] in cnt_for_segment):
+                flow[i, j, 0] = float(flow_for_segment[img_prev[i, j]][0]) / float(cnt_for_segment[img_prev[i, j]])
+                flow[i, j, 1] = float(flow_for_segment[img_prev[i, j]][1]) / float(cnt_for_segment[img_prev[i, j]])
+    return flow
