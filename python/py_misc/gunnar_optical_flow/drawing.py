@@ -154,10 +154,17 @@ def random_multiple_moving_objects(num_obj, speed_max, size_max, img_height, img
        img_next - next image
        motion_field : np.ndarray
        motion_field - 3d array, shape (img_height, img_width, 2), motion field
+       model : np.ndarray
+       model - model for the whole image, 3d array, shape (img_height, img_width, 5):
+               model[i, j, 0..1] = location of the object to which this pixel belongs
+               model[i, j, 2] = shape of the object to which this pixel belongs
+               model[i, j, 3] = size of the object to which this pixel belongs
+               model[i, j, 4] = greyscale value of the object to which this pixel belongs
     """
     img_prev = np.zeros([img_height, img_width], np.uint8)
     img_next = np.zeros([img_height, img_width], np.uint8)
     motion_field = np.zeros([img_height, img_width, 2])
+    model = np.zeros([img_height, img_width, 5])
     for i in range(num_obj):
         grey_value = int(255.0 * (float(i + 1) / float(num_obj)))
         x1 = np.random.choice(img_height, 1)[0]
@@ -169,7 +176,7 @@ def random_multiple_moving_objects(num_obj, speed_max, size_max, img_height, img
             if (x1_next >= 0 and x1_next < img_height and x2_next >= 0 and x2_next < img_width):
                 break
         shape = np.random.choice(3, 1)[0]
-        obj_size = 1 + np.random.choice(size_max, 1)[0]
+        obj_size = int(1 + np.random.choice(size_max, 1)[0])
         if (shape == 0):
             add_circle_to_image(img_prev, x1, x2, obj_size, grey_value)
             add_circle_to_image(img_next, x1_next, x2_next, obj_size, grey_value)
@@ -184,6 +191,11 @@ def random_multiple_moving_objects(num_obj, speed_max, size_max, img_height, img
                 if (p1 >= 0 and p1 < img_height and p2 >= 0 and p2 < img_width and img_prev[p1, p2] == grey_value):
                     motion_field[p1, p2, 0] = x1_next - x1
                     motion_field[p1, p2, 1] = x2_next - x2
+                    model[p1, p2, 0] = x1
+                    model[p1, p2, 1] = x2
+                    model[p1, p2, 2] = shape
+                    model[p1, p2, 3] = obj_size
+                    model[p1, p2, 4] = grey_value
     if (noise_in_prev):
         for i in range(img_height):
             for j in range(img_width):
@@ -196,7 +208,7 @@ def random_multiple_moving_objects(num_obj, speed_max, size_max, img_height, img
                 noise = numpy.random.normal(scale = std_in_next)
                 v = min(max(img_next[i, j] + noise, 0), 255)
                 img_next[i, j] = int(v)
-    return [img_prev, img_next, motion_field]
+    return [img_prev, img_next, motion_field, model]
 
 def average_optical_flow_from_motion_field(img_prev, img_next, motion_field):
     """
@@ -233,22 +245,43 @@ def average_optical_flow_from_motion_field(img_prev, img_next, motion_field):
                 flow[i, j, 1] = float(flow_for_segment[img_prev[i, j]][1]) / float(cnt_for_segment[img_prev[i, j]])
     return flow
 
-def reconstruct_from_flow(img_prev, flow):
+def reconstruct_from_flow(img_prev, flow, model = None):
     """
         predict the next frame given previous image and the optical flow or motion field
         img_prev : np.array
         img_prev - 2d array, previous frame
         flow : np.ndarray
         flow - 3d array, shape (img_prev.shape[0], img_prev.shape[1], 2), optical flow or motion field
+        model : np.ndarray
+        model - model for the whole image, 3d array, shape (img_height, img_width, 5):
+                model[i, j, 0..1] = location of the object to which this pixel belongs
+                model[i, j, 2] = shape of the object to which this pixel belongs
+                model[i, j, 3] = size of the object to which this pixel belongs
+                model[i, j, 4] = greyscale value of the object to which this pixel belongs
         return img_next
         img_next : np.array
         img_next - 2d array, predicted next frame
     """
     img_next = np.zeros(img_prev.shape, np.uint8)
-    for i in range(img_prev.shape[0]):
-        for j in range(img_prev.shape[1]):
-            x1 = int(i + flow[i, j, 0])
-            x2 = int(j + flow[i, j, 1])
-            if (img_prev[i, j] > 0 and x1 >= 0 and x1 < img_prev.shape[0] and x2 >= 0 and x2 < img_prev.shape[1]):
-                img_next[x1, x2] = img_prev[i, j]
+    if (model is None):
+        for i in range(img_prev.shape[0]):
+            for j in range(img_prev.shape[1]):
+                x1 = int(i + flow[i, j, 0])
+                x2 = int(j + flow[i, j, 1])
+                if (img_prev[i, j] > 0 and x1 >= 0 and x1 < img_prev.shape[0] and x2 >= 0 and x2 < img_prev.shape[1]):
+                    img_next[x1, x2] = img_prev[i, j]
+    else:
+        segment_pos = {}
+        for i in range(img_prev.shape[0]):
+            for j in range(img_prev.shape[1]):
+                if (model[i, j, 4] > 0 and (model[i, j, 4] not in segment_pos) and img_prev[i, j] == model[i, j, 4]):
+                    x1 = int(model[i, j, 0] + flow[i, j, 0])
+                    x2 = int(model[i, j, 1] + flow[i, j, 1])
+                    segment_pos[model[i, j, 4]] = [x1, x2]
+                    if (model[i, j, 2] == 0):
+                        add_circle_to_image(img_next, x1, x2, int(model[i, j, 3]), model[i, j, 4])
+                    elif (model[i, j, 2] == 1):
+                        add_triangle_to_image(img_next, x1, x2, int(model[i, j, 3]), model[i, j, 4])
+                    else:
+                        add_square_to_image(img_next, x1, x2, int(model[i, j, 3]), model[i, j, 4])
     return img_next
