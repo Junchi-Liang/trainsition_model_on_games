@@ -119,3 +119,61 @@ class VGG16_model:
         layers["fc3"] = tf.nn.bias_add(tf.matmul(layers["relu15"], parameters["w_fc3"]), parameters["b_fc3"])
         layers["output"] = tf.nn.softmax(layers["fc3"])
         return [layers, parameters]
+
+    def load_weight(sess, filename = None, weight_input = None, matching = None):
+        """
+            load pretrained weights into this model
+            sess : tf.Session
+            sess = session used for variable assignment
+            filename : string
+            filename = file name of pretrained weight file. if this is None, please provide weight_input
+            weight_input : numpy.lib.npyio.NpzFile
+            weight_input = pretrained weights. if this is None, please provide filename
+            matching : dictionary
+            matching = a mapping between names of pretrained weights and weights loaded in this model.
+                       e.g. when matching['a'] = 'b', pretrained['b'] will be assigned to self.parameters['a']
+        """
+        if (matching is None):
+            match = {"w_conv1": "conv1_1_W",
+                     "b_conv1": "conv1_1_b",
+                     "w_conv2": "conv1_2_W",
+                     "b_conv2": "conv1_2_b",
+                     "w_conv3": "conv2_1_W",
+                     "b_conv3": "conv2_1_b",
+                     "w_conv4": "conv2_2_W",
+                     "b_conv4": "conv2_2_b",
+                     "w_conv5": "conv3_1_W",
+                     "b_conv5": "conv3_1_b",
+                     "w_conv6": "conv3_2_W",
+                     "b_conv6": "conv3_2_b",
+                     "w_conv7": "conv3_3_W",
+                     "b_conv7": "conv3_3_b",
+                     "w_conv8": "conv4_1_W",
+                     "b_conv8": "conv4_1_b",
+                     "w_conv9": "conv4_2_W",
+                     "b_conv9": "conv4_2_b",
+                     "w_conv10": "conv4_3_W",
+                     "b_conv10": "conv4_3_b",
+                     "w_conv11": "conv5_1_W",
+                     "b_conv11": "conv5_1_b",
+                     "w_conv12": "conv5_2_W",
+                     "b_conv12": "conv5_2_b",
+                     "w_conv13": "conv5_3_W",
+                     "b_conv13": "conv5_3_b",
+                     "w_fc1": "fc6_W",
+                     "b_fc1": "fc6_b",
+                     "w_fc2": "fc7_W",
+                     "b_fc2": "fc7_b",
+                     "w_fc3": "fc8_W",
+                     "b_fc3": "fc8_b"
+                    }
+        else:
+            match = matching
+        if (weight_input is None):
+            weight_loaded = np.load(filename)
+        else:
+            weight_loaded = weight_input
+        for para_name in match:
+            sess.run(self.parameters[para_name], weight_loaded[match[para_name]])
+
+
