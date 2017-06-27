@@ -2,9 +2,9 @@ import tensorflow as tf
 import numpy as np
 import nn_utils.cnn_utils
 
-class VGG_model:
+class VGG16_model:
     """
-        My Implementation for VGG
+        My Implementation for VGG16
     """
     def __init__(self, img_height, img_width, img_channel, training_batch_size = None, test_batch_size = None):
         """
@@ -41,6 +41,18 @@ class VGG_model:
             parameters = {}
             for i in range(1, 14):
                 parameters["w_conv" + str(i)] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], self.image_channel, 64, 0.1)
-                parameters["b_covn" + str(i)] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
+                parameters["b_conv" + str(i)] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
         else:
             parameters = shared_weight
+        layers = {}
+        if (input_layer is None):
+            layers["image_input"] = tf.placeholder(tf.float32, shape = [\
+                                       batch_size, self.image_height, self.image_width, self.image_channel])
+        else:
+            layers["image_input"] = input_layer
+        layers["conv1"] = tf.nn.conv2d(layers["image_input"],
+                                       parameters["w_conv1"], strides=[1, 1, 1, 1], padding='SAME') + parameters["b_conv1"]
+        layers["relu1"] = tf.nn.relu(layers["conv1"])
+        layers["conv2"] = tf.nn.conv2d(layers["conv1"],
+                                       parameters["w_conv2"], strides=[1, 1, 1, 1], padding='SAME') + parameters["b_conv2"]
+        layers["relu2"] = tf.nn.relu(layers["conv2"])
