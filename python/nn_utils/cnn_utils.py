@@ -24,7 +24,7 @@ def bias_variable(shape, constant_init):
         constant_init - constant for initializing this bias term
     """
     initial = tf.constant(constant_init, shape=shape)
-    return tf.Variable(initial)
+    return tf.Variable(initial, trainable=True)
 
 def weight_convolution_normal(patch_size, num_input_channels, num_output_channels, stddev_input):
     """
