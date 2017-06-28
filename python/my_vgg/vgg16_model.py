@@ -27,14 +27,14 @@ class VGG16_model:
         self.train_batch_size = training_batch_size
         self.test_batch_size = test_batch_size
         if (training_batch_size is not None):
-            self.train_net, self.parameters = construct_network_computation_graph(batch_size = training_batch_size, shared_weight = pretrained_weight)
+            self.train_net, self.parameters = self.construct_network_computation_graph(batch_size = training_batch_size, shared_weight = pretrained_weight)
         if (test_batch_size is not None):
             try:
-                self.test_net, self.parameters = construct_network_computation_graph(batch_size = test_batch_size, shared_weight = self.parameters)
+                self.test_net, self.parameters = self.construct_network_computation_graph(batch_size = test_batch_size, shared_weight = self.parameters)
             except AttributeError:
-                self.test_net, self.parameters = construct_network_computation_graph(batch_size = test_batch_size, shared_weight = pretrained_weight)
+                self.test_net, self.parameters = self.construct_network_computation_graph(batch_size = test_batch_size, shared_weight = pretrained_weight)
 
-    def construct_network_computation_graph(input_layer = None, batch_size = 0, shared_weight = None):
+    def construct_network_computation_graph(self, input_layer = None, batch_size = 0, shared_weight = None):
         """
             construct computation graph of Tensorflow for the networks
             input_layer : tensorflow.python.framework.ops.Tensor
@@ -48,9 +48,26 @@ class VGG16_model:
         """
         if (shared_weight is None):
             parameters = {}
-            for i in range(1, 14):
-                parameters["w_conv" + str(i)] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], self.image_channel, 64, 0.1)
-                parameters["b_conv" + str(i)] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
+            parameters["w_conv1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], self.image_channel, 64, 0.1)
+            parameters["b_conv1"] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
+            parameters["w_conv2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 64, 0.1)
+            parameters["b_conv2"] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
+            parameters["w_conv3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 128, 0.1)
+            parameters["b_conv3"] = nn_utils.cnn_utils.bias_convolution(128, 0.0)
+            parameters["w_conv4"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 128, 0.1)
+            parameters["b_conv4"] = nn_utils.cnn_utils.bias_convolution(128, 0.0)
+            parameters["w_conv5"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 256, 0.1)
+            parameters["b_conv5"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
+            parameters["w_conv6"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.1)
+            parameters["b_conv6"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
+            parameters["w_conv7"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.1)
+            parameters["b_conv7"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
+            parameters["w_conv8"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 512, 0.1)
+            parameters["b_conv8"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+            for i in range(9, 14):
+                parameters["w_conv" + str(i)] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+                parameters["b_conv" + str(i)] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+
             parameters["w_fc2"] = nn_utils.cnn_utils.normal_weight_variable([4096, 4096], 0.1)
             parameters["b_fc2"] = nn_utils.cnn_utils.bias_variable([4096], 1.0)
             parameters["w_fc3"] = nn_utils.cnn_utils.normal_weight_variable([4096, 1000], 0.1)
@@ -66,7 +83,7 @@ class VGG16_model:
         layers["conv1"] = tf.nn.bias_add(tf.nn.conv2d(layers["image_input"],
                                        parameters["w_conv1"], strides=[1, 1, 1, 1], padding='SAME'), parameters["b_conv1"])
         layers["relu1"] = tf.nn.relu(layers["conv1"])
-        layers["conv2"] = tf.nn.bias_add(tf.nn.conv2d(layers["conv1"],
+        layers["conv2"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu1"],
                                        parameters["w_conv2"], strides=[1, 1, 1, 1], padding='SAME'), parameters["b_conv2"])
         layers["relu2"] = tf.nn.relu(layers["conv2"])
         layers["pool1"] = tf.nn.max_pool(layers["relu2"], ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = 'SAME')
@@ -75,7 +92,7 @@ class VGG16_model:
         layers["relu3"] = tf.nn.relu(layers["conv3"])
         layers["conv4"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu3"], parameters["w_conv4"], strides = [1, 1, 1, 1], \
                                        padding = 'SAME'), parameters["b_conv4"])
-        layers["relu4"] = tf.n.relu(layers["conv4"])
+        layers["relu4"] = tf.nn.relu(layers["conv4"])
         layers["pool2"] = tf.nn.max_pool(layers["relu4"], ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = 'SAME')
         layers["conv5"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool2"], parameters["w_conv5"], strides = [1, 1, 1, 1], \
                                        padding = 'SAME'), parameters["b_conv5"])
@@ -112,7 +129,7 @@ class VGG16_model:
         if (shared_weight is None):
             parameters["w_fc1"] = nn_utils.cnn_utils.normal_weight_variable([pool5_size, 4096], 0.1)
             parameters["b_fc1"] = nn_utils.cnn_utils.bias_variable([4096], 1.0)
-        layers["fc1"] = tf.nn.bias_add(tf.matmul(layers["pool5"], parameters["w_fc1"]), parameters["b_fc1"])
+        layers["fc1"] = tf.nn.bias_add(tf.matmul(layers["flat"], parameters["w_fc1"]), parameters["b_fc1"])
         layers["relu14"] = tf.nn.relu(layers["fc1"])
         layers["fc2"] = tf.nn.bias_add(tf.matmul(layers["relu14"], parameters["w_fc2"]), parameters["b_fc2"])
         layers["relu15"] = tf.nn.relu(layers["fc2"])
