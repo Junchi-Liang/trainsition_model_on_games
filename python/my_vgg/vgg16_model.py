@@ -120,7 +120,7 @@ class VGG16_model:
         layers["output"] = tf.nn.softmax(layers["fc3"])
         return [layers, parameters]
 
-    def load_weight(sess, filename = None, weight_input = None, matching = None):
+    def load_weight(self, sess, filename = None, weight_input = None, matching = None):
         """
             load pretrained weights into this model
             sess : tf.Session
