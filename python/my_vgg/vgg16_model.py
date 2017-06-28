@@ -137,7 +137,7 @@ class VGG16_model:
         layers["output"] = tf.nn.softmax(layers["fc3"])
         return [layers, parameters]
 
-    def load_weight(self, sess, filename = None, weight_input = None, matching = None):
+    def load_weight(self, sess, filename = None, weight_input = None, matching = None, display = False):
         """
             load pretrained weights into this model
             sess : tf.Session
@@ -149,6 +149,8 @@ class VGG16_model:
             matching : dictionary
             matching = a mapping between names of pretrained weights and weights loaded in this model.
                        e.g. when matching['a'] = 'b', pretrained['b'] will be assigned to self.parameters['a']
+            display : boolean
+            display = indicator for if the process of loading should be displayed
         """
         if (matching is None):
             match = {"w_conv1": "conv1_1_W",
@@ -191,6 +193,8 @@ class VGG16_model:
         else:
             weight_loaded = weight_input
         for para_name in match:
-            sess.run(self.parameters[para_name], weight_loaded[match[para_name]])
+            if (display):
+                print para_name, match[para_name]
+            sess.run(self.parameters[para_name].assign(weight_loaded[match[para_name]]))
 
 
