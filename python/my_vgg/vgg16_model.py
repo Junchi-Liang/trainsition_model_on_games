@@ -6,7 +6,7 @@ class VGG16_model:
     """
         My Implementation for VGG16
     """
-    def __init__(self, img_height, img_width, img_channel, training_batch_size = None, test_batch_size = None, pretrained_weight = None):
+    def __init__(self, img_height = 224, img_width = 224, img_channel = 3, training_batch_size = None, test_batch_size = None, pretrained_weight = None):
         """
             img_height : int
             img_height = height of images
