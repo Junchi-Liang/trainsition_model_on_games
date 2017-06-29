@@ -48,30 +48,37 @@ class VGG16_model:
         """
         if (shared_weight is None):
             parameters = {}
-            parameters["w_conv1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], self.image_channel, 64, 0.1)
-            parameters["b_conv1"] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
-            parameters["w_conv2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 64, 0.1)
-            parameters["b_conv2"] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
-            parameters["w_conv3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 128, 0.1)
-            parameters["b_conv3"] = nn_utils.cnn_utils.bias_convolution(128, 0.0)
-            parameters["w_conv4"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 128, 0.1)
-            parameters["b_conv4"] = nn_utils.cnn_utils.bias_convolution(128, 0.0)
-            parameters["w_conv5"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 256, 0.1)
-            parameters["b_conv5"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
-            parameters["w_conv6"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.1)
-            parameters["b_conv6"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
-            parameters["w_conv7"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.1)
-            parameters["b_conv7"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
-            parameters["w_conv8"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 512, 0.1)
-            parameters["b_conv8"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
-            for i in range(9, 14):
-                parameters["w_conv" + str(i)] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
-                parameters["b_conv" + str(i)] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+            parameters["w_conv1_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], self.image_channel, 64, 0.1)
+            parameters["b_conv1_1"] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
+            parameters["w_conv1_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 64, 0.1)
+            parameters["b_conv1_2"] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
+            parameters["w_conv2_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 128, 0.1)
+            parameters["b_conv2_1"] = nn_utils.cnn_utils.bias_convolution(128, 0.0)
+            parameters["w_conv2_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 128, 0.1)
+            parameters["b_conv2_2"] = nn_utils.cnn_utils.bias_convolution(128, 0.0)
+            parameters["w_conv3_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 256, 0.1)
+            parameters["b_conv3_1"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
+            parameters["w_conv3_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.1)
+            parameters["b_conv3_2"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
+            parameters["w_conv3_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.1)
+            parameters["b_conv3_3"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
+            parameters["w_conv4_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 512, 0.1)
+            parameters["b_conv4_1"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+            parameters["w_conv4_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+            parameters["b_conv4_2"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+            parameters["w_conv4_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+            parameters["b_conv4_3"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+            parameters["w_conv5_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+            parameters["b_conv5_1"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+            parameters["w_conv5_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+            parameters["b_conv5_2"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+            parameters["w_conv5_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+            parameters["b_conv5_3"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
 
-            parameters["w_fc2"] = nn_utils.cnn_utils.normal_weight_variable([4096, 4096], 0.1)
-            parameters["b_fc2"] = nn_utils.cnn_utils.bias_variable([4096], 1.0)
-            parameters["w_fc3"] = nn_utils.cnn_utils.normal_weight_variable([4096, 1000], 0.1)
-            parameters["b_fc3"] = nn_utils.cnn_utils.bias_variable([1000], 1.0)
+            parameters["w_fc7"] = nn_utils.cnn_utils.normal_weight_variable([4096, 4096], 0.1)
+            parameters["b_fc7"] = nn_utils.cnn_utils.bias_variable([4096], 1.0)
+            parameters["w_fc8"] = nn_utils.cnn_utils.normal_weight_variable([4096, 1000], 0.1)
+            parameters["b_fc8"] = nn_utils.cnn_utils.bias_variable([1000], 1.0)
         else:
             parameters = shared_weight
         layers = {}
@@ -80,61 +87,61 @@ class VGG16_model:
                                        batch_size, self.image_height, self.image_width, self.image_channel])
         else:
             layers["image_input"] = input_layer
-        layers["conv1"] = tf.nn.bias_add(tf.nn.conv2d(layers["image_input"],
-                                       parameters["w_conv1"], strides=[1, 1, 1, 1], padding='SAME'), parameters["b_conv1"])
-        layers["relu1"] = tf.nn.relu(layers["conv1"])
-        layers["conv2"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu1"],
-                                       parameters["w_conv2"], strides=[1, 1, 1, 1], padding='SAME'), parameters["b_conv2"])
-        layers["relu2"] = tf.nn.relu(layers["conv2"])
-        layers["pool1"] = tf.nn.max_pool(layers["relu2"], ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = 'SAME')
-        layers["conv3"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool1"], parameters["w_conv3"], strides = [1, 1 ,1, 1],\
-                                       padding = 'SAME'), parameters["b_conv3"])
-        layers["relu3"] = tf.nn.relu(layers["conv3"])
-        layers["conv4"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu3"], parameters["w_conv4"], strides = [1, 1, 1, 1], \
-                                       padding = 'SAME'), parameters["b_conv4"])
-        layers["relu4"] = tf.nn.relu(layers["conv4"])
-        layers["pool2"] = tf.nn.max_pool(layers["relu4"], ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = 'SAME')
-        layers["conv5"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool2"], parameters["w_conv5"], strides = [1, 1, 1, 1], \
-                                       padding = 'SAME'), parameters["b_conv5"])
-        layers["relu5"] = tf.nn.relu(layers["conv5"])
-        layers["conv6"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu5"], parameters["w_conv6"], strides = [1, 1, 1, 1], \
-                                       padding = 'SAME'), parameters["b_conv6"])
-        layers["relu6"] = tf.nn.relu(layers["conv6"])
-        layers["conv7"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu6"], parameters["w_conv7"], strides = [1, 1, 1, 1], \
-                                       padding = 'SAME'), parameters["b_conv7"])
-        layers["relu7"] = tf.nn.relu(layers["conv7"])
-        layers["pool3"] = tf.nn.max_pool(layers["relu7"], ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = 'SAME')
-        layers["conv8"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool3"], parameters["w_conv8"], strides = [1, 1, 1, 1], \
-                                       padding = 'SAME'), parameters["b_conv8"])
-        layers["relu8"] = tf.nn.relu(layers["conv8"])
-        layers["conv9"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu8"], parameters["w_conv9"], strides = [1, 1, 1, 1], \
-                                       padding = 'SAME'), parameters["b_conv9"])
-        layers["relu9"] = tf.nn.relu(layers["conv9"])
-        layers["conv10"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu9"], parameters["w_conv10"], strides = [1, 1, 1, 1], \
-                                        padding = 'SAME'), parameters["b_conv10"])
-        layers["relu10"] = tf.nn.relu(layers["conv10"])
-        layers["pool4"] = tf.nn.max_pool(layers["relu10"], ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = 'SAME')
-        layers["conv11"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool4"], parameters["w_conv11"], strides = [1, 1, 1, 1], \
-                                        padding = 'SAME'), parameters["b_conv11"])
-        layers["relu11"] = tf.nn.relu(layers["conv11"])
-        layers["conv12"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu11"], parameters["w_conv12"], strides = [1, 1, 1, 1], \
-                                        padding = 'SAME'), parameters["b_conv12"])
-        layers["relu12"] = tf.nn.relu(layers["conv12"])
-        layers["conv13"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu12"], parameters["w_conv13"], strides = [1, 1, 1, 1], \
-                                        padding = 'SAME'), parameters["b_conv13"])
-        layers["relu13"] = tf.nn.relu(layers["conv13"])
-        layers["pool5"] = tf.nn.max_pool(layers["relu13"], ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = 'SAME')
+        layers["conv1_1"] = tf.nn.bias_add(tf.nn.conv2d(layers["image_input"],
+                                       parameters["w_conv1_1"], strides=[1, 1, 1, 1], padding='SAME'), parameters["b_conv1_1"])
+        layers["relu1_1"] = tf.nn.relu(layers["conv1_1"])
+        layers["conv1_2"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu1_1"],
+                                       parameters["w_conv1_2"], strides=[1, 1, 1, 1], padding='SAME'), parameters["b_conv1_2"])
+        layers["relu1_2"] = tf.nn.relu(layers["conv1_2"])
+        layers["pool1"] = tf.nn.max_pool(layers["relu1_2"], ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = 'SAME')
+        layers["conv2_1"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool1"], parameters["w_conv2_1"], strides = [1, 1 ,1, 1],\
+                                       padding = 'SAME'), parameters["b_conv2_1"])
+        layers["relu2_1"] = tf.nn.relu(layers["conv2_1"])
+        layers["conv2_2"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu2_1"], parameters["w_conv2_2"], strides = [1, 1, 1, 1], \
+                                       padding = 'SAME'), parameters["b_conv2_2"])
+        layers["relu2_2"] = tf.nn.relu(layers["conv2_2"])
+        layers["pool2"] = tf.nn.max_pool(layers["relu2_2"], ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = 'SAME')
+        layers["conv3_1"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool2"], parameters["w_conv3_1"], strides = [1, 1, 1, 1], \
+                                       padding = 'SAME'), parameters["b_conv3_1"])
+        layers["relu3_1"] = tf.nn.relu(layers["conv3_1"])
+        layers["conv3_2"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu3_1"], parameters["w_conv3_2"], strides = [1, 1, 1, 1], \
+                                       padding = 'SAME'), parameters["b_conv3_2"])
+        layers["relu3_2"] = tf.nn.relu(layers["conv3_2"])
+        layers["conv3_3"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu3_2"], parameters["w_conv3_3"], strides = [1, 1, 1, 1], \
+                                       padding = 'SAME'), parameters["b_conv3_3"])
+        layers["relu3_3"] = tf.nn.relu(layers["conv3_3"])
+        layers["pool3"] = tf.nn.max_pool(layers["relu3_3"], ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = 'SAME')
+        layers["conv4_1"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool3"], parameters["w_conv4_1"], strides = [1, 1, 1, 1], \
+                                       padding = 'SAME'), parameters["b_conv4_1"])
+        layers["relu4_1"] = tf.nn.relu(layers["conv4_1"])
+        layers["conv4_2"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu4_1"], parameters["w_conv4_2"], strides = [1, 1, 1, 1], \
+                                       padding = 'SAME'), parameters["b_conv4_2"])
+        layers["relu4_2"] = tf.nn.relu(layers["conv4_2"])
+        layers["conv4_3"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu4_2"], parameters["w_conv4_3"], strides = [1, 1, 1, 1], \
+                                        padding = 'SAME'), parameters["b_conv4_3"])
+        layers["relu4_3"] = tf.nn.relu(layers["conv4_3"])
+        layers["pool4"] = tf.nn.max_pool(layers["relu4_3"], ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = 'SAME')
+        layers["conv5_1"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool4"], parameters["w_conv5_1"], strides = [1, 1, 1, 1], \
+                                        padding = 'SAME'), parameters["b_conv5_1"])
+        layers["relu5_1"] = tf.nn.relu(layers["conv5_1"])
+        layers["conv5_2"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu5_1"], parameters["w_conv5_2"], strides = [1, 1, 1, 1], \
+                                        padding = 'SAME'), parameters["b_conv5_2"])
+        layers["relu5_2"] = tf.nn.relu(layers["conv5_2"])
+        layers["conv5_3"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu5_2"], parameters["w_conv5_3"], strides = [1, 1, 1, 1], \
+                                        padding = 'SAME'), parameters["b_conv5_3"])
+        layers["relu5_3"] = tf.nn.relu(layers["conv5_3"])
+        layers["pool5"] = tf.nn.max_pool(layers["relu5_3"], ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = 'SAME')
         pool5_size = int(layers["pool5"].shape[1]) * int(layers["pool5"].shape[2]) * int(layers["pool5"].shape[3])
         layers["flat"] = tf.reshape(layers["pool5"], [-1, pool5_size])
         if (shared_weight is None):
-            parameters["w_fc1"] = nn_utils.cnn_utils.normal_weight_variable([pool5_size, 4096], 0.1)
-            parameters["b_fc1"] = nn_utils.cnn_utils.bias_variable([4096], 1.0)
-        layers["fc1"] = tf.nn.bias_add(tf.matmul(layers["flat"], parameters["w_fc1"]), parameters["b_fc1"])
-        layers["relu14"] = tf.nn.relu(layers["fc1"])
-        layers["fc2"] = tf.nn.bias_add(tf.matmul(layers["relu14"], parameters["w_fc2"]), parameters["b_fc2"])
-        layers["relu15"] = tf.nn.relu(layers["fc2"])
-        layers["fc3"] = tf.nn.bias_add(tf.matmul(layers["relu15"], parameters["w_fc3"]), parameters["b_fc3"])
-        layers["output"] = tf.nn.softmax(layers["fc3"])
+            parameters["w_fc6"] = nn_utils.cnn_utils.normal_weight_variable([pool5_size, 4096], 0.1)
+            parameters["b_fc6"] = nn_utils.cnn_utils.bias_variable([4096], 1.0)
+        layers["fc6"] = tf.nn.bias_add(tf.matmul(layers["flat"], parameters["w_fc6"]), parameters["b_fc6"])
+        layers["relu6"] = tf.nn.relu(layers["fc6"])
+        layers["fc7"] = tf.nn.bias_add(tf.matmul(layers["relu6"], parameters["w_fc7"]), parameters["b_fc7"])
+        layers["relu7"] = tf.nn.relu(layers["fc7"])
+        layers["fc8"] = tf.nn.bias_add(tf.matmul(layers["relu7"], parameters["w_fc8"]), parameters["b_fc8"])
+        layers["output"] = tf.nn.softmax(layers["fc8"])
         return [layers, parameters]
 
     def load_weight(self, sess, filename = None, weight_input = None, matching = None, display = False):
@@ -153,38 +160,38 @@ class VGG16_model:
             display = indicator for if the process of loading should be displayed
         """
         if (matching is None):
-            match = {"w_conv1": "conv1_1_W",
-                     "b_conv1": "conv1_1_b",
-                     "w_conv2": "conv1_2_W",
-                     "b_conv2": "conv1_2_b",
-                     "w_conv3": "conv2_1_W",
-                     "b_conv3": "conv2_1_b",
-                     "w_conv4": "conv2_2_W",
-                     "b_conv4": "conv2_2_b",
-                     "w_conv5": "conv3_1_W",
-                     "b_conv5": "conv3_1_b",
-                     "w_conv6": "conv3_2_W",
-                     "b_conv6": "conv3_2_b",
-                     "w_conv7": "conv3_3_W",
-                     "b_conv7": "conv3_3_b",
-                     "w_conv8": "conv4_1_W",
-                     "b_conv8": "conv4_1_b",
-                     "w_conv9": "conv4_2_W",
-                     "b_conv9": "conv4_2_b",
-                     "w_conv10": "conv4_3_W",
-                     "b_conv10": "conv4_3_b",
-                     "w_conv11": "conv5_1_W",
-                     "b_conv11": "conv5_1_b",
-                     "w_conv12": "conv5_2_W",
-                     "b_conv12": "conv5_2_b",
-                     "w_conv13": "conv5_3_W",
-                     "b_conv13": "conv5_3_b",
-                     "w_fc1": "fc6_W",
-                     "b_fc1": "fc6_b",
-                     "w_fc2": "fc7_W",
-                     "b_fc2": "fc7_b",
-                     "w_fc3": "fc8_W",
-                     "b_fc3": "fc8_b"
+            match = {"w_conv1_1": "conv1_1_W",
+                     "b_conv1_1": "conv1_1_b",
+                     "w_conv1_2": "conv1_2_W",
+                     "b_conv1_2": "conv1_2_b",
+                     "w_conv2_1": "conv2_1_W",
+                     "b_conv2_1": "conv2_1_b",
+                     "w_conv2_2": "conv2_2_W",
+                     "b_conv2_2": "conv2_2_b",
+                     "w_conv3_1": "conv3_1_W",
+                     "b_conv3_1": "conv3_1_b",
+                     "w_conv3_2": "conv3_2_W",
+                     "b_conv3_2": "conv3_2_b",
+                     "w_conv3_3": "conv3_3_W",
+                     "b_conv3_3": "conv3_3_b",
+                     "w_conv4_1": "conv4_1_W",
+                     "b_conv4_1": "conv4_1_b",
+                     "w_conv4_2": "conv4_2_W",
+                     "b_conv4_2": "conv4_2_b",
+                     "w_conv4_3": "conv4_3_W",
+                     "b_conv4_3": "conv4_3_b",
+                     "w_conv5_1": "conv5_1_W",
+                     "b_conv5_1": "conv5_1_b",
+                     "w_conv5_2": "conv5_2_W",
+                     "b_conv5_2": "conv5_2_b",
+                     "w_conv5_3": "conv5_3_W",
+                     "b_conv5_3": "conv5_3_b",
+                     "w_fc6": "fc6_W",
+                     "b_fc6": "fc6_b",
+                     "w_fc7": "fc7_W",
+                     "b_fc7": "fc7_b",
+                     "w_fc8": "fc8_W",
+                     "b_fc8": "fc8_b"
                     }
         else:
             match = matching
