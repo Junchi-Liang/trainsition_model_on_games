@@ -18,3 +18,20 @@ class FCN_model:
                             when an VGG16 model is loaded to FCN, they will keep their own saparate weight objects,
                             i.e. changes of one model will only appear in this model
         """
+
+    def build_computation_graph(self, parameters, batch_size):
+        """
+            build computation graph for the FCN architecture
+            parameters : dictionary
+            parameters = parameters used in this architecture
+            batch_size : int
+            batch_size = batch size for this graph
+            ------------------------------------------------
+            return layers
+            layers : dictionary
+            layers = collection of tensors for each layers, indexed by name
+        """
+
+    def convert_VGG(self, vgg_model):
+        """
+        """

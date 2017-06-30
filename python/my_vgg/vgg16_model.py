@@ -45,6 +45,10 @@ class VGG16_model:
             shared_weight = weights for each layers. If it is None, new weights will be constructed
             ---------------------------------------------------------------------------------------
             return [layers, parameters]
+            layers : dictionary
+            layers = collection of tensors for each layers, indexed by name
+            parameters : dictionary
+            parameters = collection of parameters used in this architecture, indexed by name
         """
         if (shared_weight is None):
             parameters = {}
