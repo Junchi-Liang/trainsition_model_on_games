@@ -94,6 +94,8 @@ class FCN_model:
         layers["conv7"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu6"], parameters["w_conv7"], strides = [1, 1, 1, 1], \
                                          padding = 'SAME'), parameters["b_conv7"])
         layers["relu7"] = tf.nn.relu(layers["conv7"])
+        layers["score_fr"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu7"], parameters["w_score_fr"], strides = [1, 1, 1, 1], \
+                                            padding = 'SAME'), parameters["b_score_fr"])
 
     def convert_VGG(self, vgg_model):
         """
