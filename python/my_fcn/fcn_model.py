@@ -27,6 +27,9 @@ class FCN_model:
         self.parameters = self.convert_VGG(convert_from_vgg, num_class)
         if (training_batch_size is not None):
             self.train_net = self.build_computation_graph(self.parameters, training_batch_size, num_class, drop_out_prob, img_height, img_width, img_channel)
+            self.train_net["ground_truth"] = tf.placeholder(tf.int32, shape = [training_batch_size, img_height, img_width])
+            self.train_loss = self.cross_entropy(self.train_net["score_output"], self.train_net["ground_truth"])
+            self.train_optimizer = tf.train.RMSPropOptimizer(1e-4, momentum = 0.9, epsilon = 1e-8).minimize(self.train_loss)
         if (test_batch_size is not None):
             self.test_net = self.build_computation_graph(self.parameters, test_batch_size, num_class, drop_out_prob, img_height, img_width, img_channel)
 
