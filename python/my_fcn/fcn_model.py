@@ -7,19 +7,30 @@ class FCN_model:
     """
         My Implementation for FCN-8s
     """
-    def __init__(self, convert_from_vgg = None, load_from_vgg = None):
+    def __init__(self, num_class, convert_from_vgg, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, training_batch_size = None, test_batch_size = None):
         """
+            img_height : int
+            img_height = height of images
+            num_class : int
+            num_class = number of output class
             convert_from_vgg : VGG16_model
             convert_from_vgg = the VGG16 model which will be converted to FCN.
                                when an VGG16 model is converted to FCN, they will share the same weight object,
                                i.e. any modification in these weights will appear in both models
-            load_from_vgg : VGG16_model
-            load_from_vgg = the VGG16 model model which will be loaded to FCN.
-                            when an VGG16 model is loaded to FCN, they will keep their own saparate weight objects,
-                            i.e. changes of one model will only appear in this model
+            training_batch_size : int
+            training_batch_size = batch size of training batch
+            test_batch_size : int
+            test_batch_size = batch size of test batch
+            drop_out_prob : float
+            drop_out_prob = probability for drop out
         """
+        self.parameters = self.convert_VGG(convert_from_vgg, num_class)
+        if (training_batch_size is not None):
+            self.train_net = self.build_computation_graph(self.parameters, training_batch_size, num_class, drop_out_prob, img_height, img_width, img_channel)
+        if (test_batch_size is not None):
+            self.test_net = self.build_computation_graph(self.parameters, test_batch_size, num_class, drop_out_prob, img_height, img_width, img_channel)
 
-    def build_computation_graph(self, img_height, img_width, img_channel, parameters, batch_size, num_class, drop_out_prob, input_layer = None):
+    def build_computation_graph(self, parameters, batch_size, num_class, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, input_layer = None):
         """
             build computation graph for the FCN architecture
             assume color images with RGB channels
@@ -137,4 +148,45 @@ class FCN_model:
             parameters : dictionary
             parameters = collection of parameters used in this architecture, indexed by name
         """
-        
+        parameters = {}
+        shared_layers = ['conv1_1', 'conv1_2', 'conv2_1', 'conv2_2', 'conv3_1', 'conv3_2', 'conv3_3', \
+                         'conv4_1', 'conv4_2', 'conv4_3', 'conv5_1', 'conv5_2', 'conv5_3']
+        extended_layers = ['score_up1', 'score_up2', 'score_pool4', 'score_up4', \
+                           'score_pool3', 'score_output']
+        for layer in shared_layers:
+            parameters['w_' + layer] = vgg_model.parameters['w_' + layer]
+            parameters['b_' + layer] = vgg_model.parameters['b_' + layer]
+        parameters["w_conv6"] = tf.reshape(vgg_model.parameters["w_fc6"], [7, 7, 512, 4096])
+        parameters["b_conv6"] = vgg_model.parameters["b_fc6"]
+        parameters["w_conv7"] = tf.reshape(vgg_model.parameters["w_fc7"], [1, 1, 4096, 4096])
+        parameters["b_conv7"] = vgg_model.parameters["b_fc7"]
+        ext_param = self.extend_parameters(num_class)
+        for layer in extended_layers:
+            parameters['w_' + layer] = ext_param['w_' + layer]
+            parameters['b_' + layer] = ext_param['b_' + layer]
+        return parameters
+
+    def extend_parameters(self, num_class):
+        """
+            construct parameters for layers in FCN but not in VGG
+            num_class : int
+            num_class = number of output classes
+            --------------------------------------------------
+            return parameters
+            parameters : dictionary
+            parameters = collection of extended parameters, indexed by name
+        """
+        parameters = {}
+        parameters["w_score_up1"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 4096, num_class)
+        parameters["b_score_up1"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
+        parameters["w_score_up2"] = nn_utils.cnn_utils.weight_convolution_normal([4, 4], num_class, num_class)
+        parameters["b_score_up2"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
+        parameters["w_score_pool4"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 512, num_class)
+        parameters["b_score_pool4"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
+        parameters["w_score_up4"] = nn_utils.cnn_utils.weight_convolution_normal([4, 4], num_class, num_class)
+        parameters["b_score_up4"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
+        parameters["w_score_pool3"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 256, num_class)
+        parameters["b_score_pool3"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
+        parameters["w_score_output"] = nn_utils.cnn_utils.weight_convolution_normal([16, 16], num_class, num_class)
+        parameters["b_score_output"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
+        return parameters
