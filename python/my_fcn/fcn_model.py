@@ -19,7 +19,7 @@ class FCN_model:
                             i.e. changes of one model will only appear in this model
         """
 
-    def build_computation_graph(self, img_height, img_width, parameters, batch_size, input_layer = None):
+    def build_computation_graph(self, img_height, img_width, img_channel, parameters, batch_size, num_class, drop_out_prob, input_layer = None):
         """
             build computation graph for the FCN architecture
             assume color images with RGB channels
@@ -27,10 +27,16 @@ class FCN_model:
             img_height = height of images
             img_width : int
             img_width = width of images
+            img_channel : int
+            img_channel = number of channels in images
             parameters : dictionary
             parameters = parameters used in this architecture
             batch_size : int
             batch_size = batch size for this graph
+            num_class : int
+            num_class = number of classes for output layer
+            drop_out_prob : float
+            drop_out_prob = probability for drop out
             input_layer : tensorflow.python.framework.ops.Tensor
             input_layer = input layer. If it is None, a new layer of placeholder will be constructed
             ------------------------------------------------
@@ -41,7 +47,7 @@ class FCN_model:
         layers = []
         if (input_layer is None):
             layers["image_input"] = tf.placeholder(tf.float32, shape = [\
-                                       batch_size, img_height, img_width, 3])
+                                       batch_size, img_height, img_width, img_channel])
         else:
             layers["image_input"] = input_layer
         layers["conv1_1"] = tf.nn.bias_add(tf.nn.conv2d(layers["image_input"],
@@ -88,15 +94,47 @@ class FCN_model:
                                         padding = 'SAME'), parameters["b_conv5_3"])
         layers["relu5_3"] = tf.nn.relu(layers["conv5_3"])
         layers["pool5"] = tf.nn.max_pool(layers["relu5_3"], ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = 'SAME')
-        layers["conv6"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool5"], parameters["w_conv6"], strides = [1, 7, 7, 1], \
+        layers["conv6"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool5"], parameters["w_conv6"], strides = [1, 1, 1, 1], \
                                          padding = 'SAME'), parameters["b_conv6"])
         layers["relu6"] = tf.nn.relu(layers["conv6"])
-        layers["conv7"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu6"], parameters["w_conv7"], strides = [1, 1, 1, 1], \
+        layers["dropout6"] = tf.nn.dropout(layers["relu6"], drop_out_prob)
+        layers["conv7"] = tf.nn.bias_add(tf.nn.conv2d(layers["dropout6"], parameters["w_conv7"], strides = [1, 1, 1, 1], \
                                          padding = 'SAME'), parameters["b_conv7"])
         layers["relu7"] = tf.nn.relu(layers["conv7"])
-        layers["score_fr"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu7"], parameters["w_score_fr"], strides = [1, 1, 1, 1], \
-                                            padding = 'SAME'), parameters["b_score_fr"])
+        layers["dropout7"] = tf.nn.dropout(layers["relu7"], drop_out_prob)
+        layers["score_up1"] = tf.nn.bias_add(tf.nn.conv2d(layers["dropout7"], parameters["w_score_up1"], strides = [1, 1, 1, 1], \
+                                          padding = 'SAME'), parameters["b_score_up1"])
+        pool4_shape = [int(layers["pool4"].get_shape()[0]), int(layers["pool4"].get_shape()[1]), \
+                       int(layers["pool4"].get_shape()[2]), int(layers["pool4"].get_shape()[3])]
+        layers["score_up2"] = tf.nn.bias_add(tf.nn.conv2d_transpose(layers["score_up1"], parameters["w_score_up2"], \
+                                            output_shape = [pool4_shape[0], pool4_shape[1], pool4_shape[2], num_class], \
+                                            strides = [1, 2, 2, 1], padding = 'SAME'), parameters["b_score_up2"])
+        layers["score_pool4"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool4"], parameters["w_score_pool4"], \
+                                               strides = [1, 1, 1, 1], padding = 'SAME'), parameters["b_score_pool4"])
+        layers["fuse_pool4"] = tf.add(layers["scoreup2"], layers["score_pool4"])
+        pool3_shape = [int(layers["pool3"].get_shape()[0]), int(layers["pool3"].get_shape()[1]), \
+                       int(layers["pool3"].get_shape()[2]), int(layers["pool3"].get_shape()[3])]
+        layers["score_up4"] = tf.nn.bias_add(tf.nn.conv2d_transpose(layers["fuse_pool4"], parameters["w_score_up4"], \
+                                            output_shape = [pool3_shape[0], pool3_shape[1], pool3_shape[2], num_class], \
+                                            strides = [1, 2, 2, 1], padding = 'SAME'), parameters["b_score_up4"])
+        layers["score_pool3"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool3"], parameters["w_score_pool3"], \
+                                               strides = [1, 1, 1, 1], padding = 'SAME'), parameters["b_score_pool3"])
+        layers["fuse_pool3"] = tf.add(layers["score_pool3"], layers["scoreup4"])
+        layers["score_output"] = tf.nn.bias_add(tf.nn.conv2d_transpose(layers["fuse_pool3"], parameters["w_score_output"], \
+                                                output_shape = [batch_size, img_height, img_width, num_class], \
+                                                strides = [1, 8, 8, 1], padding = 'SAME'), parameters["b_score_output"])
+        return layers
 
-    def convert_VGG(self, vgg_model):
+    def convert_VGG(self, vgg_model, num_class):
         """
+            convert weights from VGG model to FCN
+            vgg_model : VGG16_model
+            vgg_model = the vgg model which will be converted
+            num_class : int
+            num_class = number of output classes
+            ---------------------------------------------------
+            return parameters
+            parameters : dictionary
+            parameters = collection of parameters used in this architecture, indexed by name
         """
+        
