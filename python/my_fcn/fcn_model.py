@@ -58,7 +58,7 @@ class FCN_model:
             layers : dictionary
             layers = collection of tensors for each layers, indexed by name
         """
-        layers = []
+        layers = {}
         if (input_layer is None):
             layers["image_input"] = tf.placeholder(tf.float32, shape = [\
                                        batch_size, img_height, img_width, img_channel])
@@ -125,7 +125,7 @@ class FCN_model:
                                             strides = [1, 2, 2, 1], padding = 'SAME'), parameters["b_score_up2"])
         layers["score_pool4"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool4"], parameters["w_score_pool4"], \
                                                strides = [1, 1, 1, 1], padding = 'SAME'), parameters["b_score_pool4"])
-        layers["fuse_pool4"] = tf.add(layers["scoreup2"], layers["score_pool4"])
+        layers["fuse_pool4"] = tf.add(layers["score_up2"], layers["score_pool4"])
         pool3_shape = [int(layers["pool3"].get_shape()[0]), int(layers["pool3"].get_shape()[1]), \
                        int(layers["pool3"].get_shape()[2]), int(layers["pool3"].get_shape()[3])]
         layers["score_up4"] = tf.nn.bias_add(tf.nn.conv2d_transpose(layers["fuse_pool4"], parameters["w_score_up4"], \
@@ -133,7 +133,7 @@ class FCN_model:
                                             strides = [1, 2, 2, 1], padding = 'SAME'), parameters["b_score_up4"])
         layers["score_pool3"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool3"], parameters["w_score_pool3"], \
                                                strides = [1, 1, 1, 1], padding = 'SAME'), parameters["b_score_pool3"])
-        layers["fuse_pool3"] = tf.add(layers["score_pool3"], layers["scoreup4"])
+        layers["fuse_pool3"] = tf.add(layers["score_pool3"], layers["score_up4"])
         layers["score_output"] = tf.nn.bias_add(tf.nn.conv2d_transpose(layers["fuse_pool3"], parameters["w_score_output"], \
                                                 output_shape = [batch_size, img_height, img_width, num_class], \
                                                 strides = [1, 8, 8, 1], padding = 'SAME'), parameters["b_score_output"])
@@ -180,17 +180,17 @@ class FCN_model:
             parameters = collection of extended parameters, indexed by name
         """
         parameters = {}
-        parameters["w_score_up1"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 4096, num_class)
+        parameters["w_score_up1"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 4096, num_class, 0.1)
         parameters["b_score_up1"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
-        parameters["w_score_up2"] = nn_utils.cnn_utils.weight_convolution_normal([4, 4], num_class, num_class)
+        parameters["w_score_up2"] = nn_utils.cnn_utils.weight_deconvolution_normal([4, 4], num_class, num_class, 0.1)
         parameters["b_score_up2"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
-        parameters["w_score_pool4"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 512, num_class)
+        parameters["w_score_pool4"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 512, num_class, 0.1)
         parameters["b_score_pool4"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
-        parameters["w_score_up4"] = nn_utils.cnn_utils.weight_convolution_normal([4, 4], num_class, num_class)
+        parameters["w_score_up4"] = nn_utils.cnn_utils.weight_deconvolution_normal([4, 4], num_class, num_class, 0.1)
         parameters["b_score_up4"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
-        parameters["w_score_pool3"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 256, num_class)
+        parameters["w_score_pool3"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 256, num_class, 0.1)
         parameters["b_score_pool3"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
-        parameters["w_score_output"] = nn_utils.cnn_utils.weight_convolution_normal([16, 16], num_class, num_class)
+        parameters["w_score_output"] = nn_utils.cnn_utils.weight_deconvolution_normal([16, 16], num_class, num_class, 0.1)
         parameters["b_score_output"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
         return parameters
 
