@@ -190,3 +190,17 @@ class FCN_model:
         parameters["w_score_output"] = nn_utils.cnn_utils.weight_convolution_normal([16, 16], num_class, num_class)
         parameters["b_score_output"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
         return parameters
+
+    def cross_entropy(self, logit_layer, label):
+        """
+            construct a computation node of loss
+            logit_layer : tensorflow.python.framework.ops.Tensor
+            logit_layer = the last layer of the architecture before softmax. shape [batch_size, img_height, img_width, num_class]
+            label : tensorflow.python.framework.ops.Tensor
+            label = placeholder for the ground truth. shape [batch_size, img_height, img_width]
+            -----------------------------------------------------------
+            return loss
+            loss : tensorflow.python.framework.ops.Tensor
+            loss = a computation node for loss
+        """
+        return tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits = logit_layer, labels = label))
