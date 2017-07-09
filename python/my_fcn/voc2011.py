@@ -169,7 +169,6 @@ class VOC2011:
             ground_truth = self.load_ground_truth(self.segmentation_image_path(img_index))
             img_set[i - self.index_next] = img_input
             ground_truth_set[i - self.index_next] = ground_truth
-            print i
         self.index_next = self.index_next + real_batch_size
         return [img_set, ground_truth_set]
 
