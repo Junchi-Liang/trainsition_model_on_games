@@ -169,6 +169,52 @@ class FCN_model:
             parameters['b_' + layer] = ext_param['b_' + layer]
         return parameters
 
+    def empty_parameters(self, num_class):
+        """
+            construct parameters
+            num_class : int
+            num_class = number of class
+            --------------------------------------------------
+            return parameters
+            parameters : dictionary
+            parameters = collection of extended parameters, indexed by name
+        """
+        parameters = {}
+        parameters["w_conv1_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 3, 64, 0.1)
+        parameters["b_conv1_1"] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
+        parameters["w_conv1_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 64, 0.1)
+        parameters["b_conv1_2"] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
+        parameters["w_conv2_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 128, 0.1)
+        parameters["b_conv2_1"] = nn_utils.cnn_utils.bias_convolution(128, 0.0)
+        parameters["w_conv2_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 128, 0.1)
+        parameters["b_conv2_2"] = nn_utils.cnn_utils.bias_convolution(128, 0.0)
+        parameters["w_conv3_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 256, 0.1)
+        parameters["b_conv3_1"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
+        parameters["w_conv3_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.1)
+        parameters["b_conv3_2"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
+        parameters["w_conv3_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.1)
+        parameters["b_conv3_3"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
+        parameters["w_conv4_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 512, 0.1)
+        parameters["b_conv4_1"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+        parameters["w_conv4_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+        parameters["b_conv4_2"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+        parameters["w_conv4_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+        parameters["b_conv4_3"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+        parameters["w_conv5_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+        parameters["b_conv5_1"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+        parameters["w_conv5_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+        parameters["b_conv5_2"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+        parameters["w_conv5_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+        parameters["b_conv5_3"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+        parameters["w_conv6"] = nn_utils.cnn_utils.weight_convolution_normal([7, 7], 512, 4096, 0.1)
+        parameters["b_conv6"] = nn_utils.cnn_utils.bias_convolution(4096, 0.0)
+        parameters["w_conv7"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 4096, 4096, 0.1)
+        parameters["b_conv7"] = nn_utils.cnn_utils.bias_convolution(4096, 0.0)
+        ext = self.extend_parameters(num_class)
+        for layer in ext:
+            parameters[layer] = ext[layer]
+        return parameters
+
     def extend_parameters(self, num_class):
         """
             construct parameters for layers in FCN but not in VGG
@@ -207,3 +253,89 @@ class FCN_model:
             loss = a computation node for loss
         """
         return tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits = logit_layer, labels = label))
+
+    def save_weights_to_npz(self, path_to_file, sess):
+        """
+            save weights to npz file
+            path_to_file : string
+            path_to_file = path to the saved file
+            sess : tf.Session
+            sess = tensorflow session, used for computing weights
+        """
+        w_conv1_1 = sess.run(self.parameters["w_conv1_1"])
+        b_conv1_1 = sess.run(self.parameters["b_conv1_1"])
+        w_conv1_2 = sess.run(self.parameters["w_conv1_2"])
+        b_conv1_2 = sess.run(self.parameters["b_conv1_2"])
+        w_conv2_1 = sess.run(self.parameters["w_conv2_1"])
+        b_conv2_1 = sess.run(self.parameters["b_conv2_1"])
+        w_conv2_2 = sess.run(self.parameters["w_conv2_2"])
+        b_conv2_2 = sess.run(self.parameters["b_conv2_2"])
+        w_conv3_1 = sess.run(self.parameters["w_conv3_1"])
+        b_conv3_1 = sess.run(self.parameters["b_conv3_1"])
+        w_conv3_2 = sess.run(self.parameters["w_conv3_2"])
+        b_conv3_2 = sess.run(self.parameters["b_conv3_2"])
+        w_conv3_3 = sess.run(self.parameters["w_conv3_3"])
+        b_conv3_3 = sess.run(self.parameters["b_conv3_3"])
+        w_conv4_1 = sess.run(self.parameters["w_conv4_1"])
+        b_conv4_1 = sess.run(self.parameters["b_conv4_1"])
+        w_conv4_2 = sess.run(self.parameters["w_conv4_2"])
+        b_conv4_2 = sess.run(self.parameters["b_conv4_2"])
+        w_conv4_3 = sess.run(self.parameters["w_conv4_3"])
+        b_conv4_3 = sess.run(self.parameters["b_conv4_3"])
+        w_conv5_1 = sess.run(self.parameters["w_conv5_1"])
+        b_conv5_1 = sess.run(self.parameters["b_conv5_1"])
+        w_conv5_2 = sess.run(self.parameters["w_conv5_2"])
+        b_conv5_2 = sess.run(self.parameters["b_conv5_2"])
+        w_conv5_3 = sess.run(self.parameters["w_conv5_3"])
+        b_conv5_3 = sess.run(self.parameters["b_conv5_3"])
+        w_conv6 = sess.run(self.parameters["w_conv6"])
+        b_conv6 = sess.run(self.parameters["b_conv6"])
+        w_conv7 = sess.run(self.parameters["w_conv7"])
+        b_conv7 = sess.run(self.parameters["b_conv7"])
+        w_score_up1 = sess.run(self.parameters["w_score_up1"])
+        b_score_up1 = sess.run(self.parameters["b_score_up1"])
+        w_score_up2 = sess.run(self.parameters["w_score_up2"])
+        b_score_up2 = sess.run(self.parameters["b_score_up2"])
+        w_score_pool4 = sess.run(self.parameters["w_score_pool4"])
+        b_score_pool4 = sess.run(self.parameters["b_score_pool4"])
+        w_score_up4 = sess.run(self.parameters["w_score_up4"])
+        b_score_up4 = sess.run(self.parameters["b_score_up4"])
+        w_score_pool3 = sess.run(self.parameters["w_score_pool3"])
+        b_score_pool3 = sess.run(self.parameters["b_score_pool3"])
+        w_score_output = sess.run(self.parameters["w_score_output"])
+        b_score_output = sess.run(self.parameters["b_score_output"])
+        np.savez(path_to_file, \
+                 w_conv1_1 = w_conv1_1, b_conv1_1 = b_conv1_1, w_conv1_2 = w_conv1_2, b_conv1_2 = b_conv1_2,\
+                 w_conv2_1 = w_conv2_1, b_conv2_1 = b_conv2_1, w_conv2_2 = w_conv2_2, b_conv2_2 = b_conv2_2,\
+                 w_conv3_1 = w_conv3_1, b_conv3_1 = b_conv3_1, w_conv3_2 = w_conv3_2, b_conv3_2 = b_conv3_2, w_conv3_3 = w_conv3_3, b_conv3_3 = b_conv3_3,\
+                 w_conv4_1 = w_conv4_1, b_conv4_1 = b_conv4_1, w_conv4_2 = w_conv4_2, b_conv4_2 = b_conv4_2, w_conv4_3 = w_conv4_3, b_conv4_3 = b_conv4_3,\
+                 w_conv5_1 = w_conv5_1, b_conv5_1 = b_conv5_1, w_conv5_2 = w_conv5_2, b_conv5_2 = b_conv5_2, w_conv5_3 = w_conv5_3, b_conv5_3 = b_conv5_3,\
+                 w_conv6 = w_conv6, b_conv6 = b_conv6, w_conv7 = w_conv7, b_conv7 = b_conv7,\
+                 w_score_up1 = w_score_up1, b_score_up1 = b_score_up1, w_score_up2 = w_score_up2, b_score_up2 = b_score_up2,\
+                 w_score_pool4 = w_score_pool4, b_score_pool4 = b_score_pool4,\
+                 w_score_up4 = w_score_up4, b_score_up4 = b_score_up4, w_score_pool3 = w_score_pool3, b_score_pool3 = b_score_pool3,\
+                 w_score_output = w_score_output, b_score_output = b_score_output)
+
+    def load_weights_from_npz(self, path_to_npz, num_class, sess, save_to_this = True):
+        """
+            load weights from npz file
+            path_to_npz : string
+            path_to_npz = path to npz file
+            num_class : int
+            num_class = number of class
+            sess : tensorflow.Session
+            sess = tensorflow session used for variable assignment
+            save_to_this : boolean
+            save_to_this = when this is true, the parameter is saved as parameter of this object
+            --------------------------------------------------
+            return parameters
+            parameters : dictionary
+            parameters = collection of extended parameters, indexed by name
+        """
+        parameters = self.empty_parameters(num_class)
+        weight_loaded = np.load(path_to_npz)
+        for layer in weight_loaded:
+            sess.run(parameters[layer].assign(weight_loaded[layer]))
+        if (save_to_this):
+            self.parameters = parameters
+        return parameters
