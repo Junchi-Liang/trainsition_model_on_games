@@ -162,7 +162,7 @@ class VOC2011:
         else:
             real_batch_size = len(self.train_index) - self.index_next
         img_set = np.zeros([batch_size, self.img_height, self.img_width, 3])
-        ground_truth_set = np.zeros([real_batch_size, self.img_height, self.img_width])
+        ground_truth_set = np.zeros([batch_size, self.img_height, self.img_width])
         for i in range(self.index_next, self.index_next + real_batch_size):
             img_index = self.train_index[self.permutation[i]]
             img_input = self.load_image(self.jpg_image_path(img_index))
