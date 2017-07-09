@@ -161,7 +161,7 @@ class VOC2011:
             real_batch_size = batch_size
         else:
             real_batch_size = len(self.train_index) - self.index_next
-        img_set = np.zeros([real_batch_size, self.img_height, self.img_width, 3])
+        img_set = np.zeros([batch_size, self.img_height, self.img_width, 3])
         ground_truth_set = np.zeros([real_batch_size, self.img_height, self.img_width])
         for i in range(self.index_next, self.index_next + real_batch_size):
             img_index = self.train_index[self.permutation[i]]
@@ -169,7 +169,15 @@ class VOC2011:
             ground_truth = self.load_ground_truth(self.segmentation_image_path(img_index))
             img_set[i - self.index_next] = img_input
             ground_truth_set[i - self.index_next] = ground_truth
-        self.index_next = self.index_next + real_batch_size
+        dup_cnt = 0
+        while real_batch_size < batch_size:
+            if (dup_cnt >= real_batch_size):
+                dup_cnt = 0
+            img_set[real_batch_size] = img_set[dup_cnt]
+            ground_truth_set[real_batch_size] = ground_truth_set[dup_cnt]
+            dup_cnt = dup_cnt + 1
+            real_batch_size = real_batch_size + 1
+        self.index_next = self.index_next + batch_size
         return [img_set, ground_truth_set]
 
     def visualize_segmentation(self, seg_output, color = None):
