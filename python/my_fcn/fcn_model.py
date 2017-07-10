@@ -147,6 +147,40 @@ class FCN_model:
                                                 strides = [1, 8, 8, 1], padding = 'SAME'), parameters["b_score_output"])
         return layers
 
+    def infer_an_image(self, image, sess, color):
+        """
+            infer for an image
+            image : numpy.ndarray
+            image = image which will be infered, shape (image_height, image_width, image_channel = 3)
+            sess : tensorflow.Session
+            sess = tensorflow session, which will be used for infering
+            color : list
+            colot = a list of color, color[i] is color for class i, which is RGB
+            ----------------------------------------------------------------
+            return [score, segmentation, visualization]
+            score : numpy.ndarray
+            score = score output for each class, shape (image_height, image_width, num_class)
+            segmentation : numpy.ndarray
+            segmentation = segmentation result, label for each pixel, shape (image_height, image_width)
+            visualization : numpy.ndarray
+            visualization = visualization of segmentation, RGB coloe image in the same color map as the one used in dataset, shape (image_height, image_width, 3)
+        """
+        num_class = int(self.parameters["w_score_output"].get_shape()[3])
+        img_height = image.shape[0]
+        img_width = image.shape[1]
+        img_channel = image.shape[2]
+        layers = self.build_computation_graph(self.parameters, 1, num_class, img_height = img_height, img_width = img_width, img_channel = img_channel, train_net = False)
+        layers["output"] = tf.argmax(layers["score_output"], axis = 3)
+        score_raw, segmentation_raw = sess.run([layers["score_output"], layers["output"]], feed_dict = {layers["image_input"] : np.reshape(image, [1, img_height, img_width, img_channel])})
+        visualization = np.zeros([img_height, img_width, 3], np.int)
+        for i in range(visualization.shape[0]):
+            for j in range(visualization.shape[1]):
+                label = segmentation_raw[0, i, j]
+                visualization[i, j, 0] = color[label][0]
+                visualization[i, j, 1] = color[label][1]
+                visualization[i, j, 2] = color[label][2]
+        return [score_raw[0], segmentation_raw[0], visualization]
+
     def convert_VGG(self, vgg_model, num_class):
         """
             convert weights from VGG model to FCN
@@ -324,13 +358,11 @@ class FCN_model:
                  w_score_up4 = w_score_up4, b_score_up4 = b_score_up4, w_score_pool3 = w_score_pool3, b_score_pool3 = b_score_pool3,\
                  w_score_output = w_score_output, b_score_output = b_score_output)
 
-    def load_weights_from_npz(self, path_to_npz, num_class, sess, save_to_this = True):
+    def load_weights_from_npz(self, path_to_npz, sess, save_to_this = True):
         """
             load weights from npz file
             path_to_npz : string
             path_to_npz = path to npz file
-            num_class : int
-            num_class = number of class
             sess : tensorflow.Session
             sess = tensorflow session used for variable assignment
             save_to_this : boolean
@@ -340,8 +372,13 @@ class FCN_model:
             parameters : dictionary
             parameters = collection of extended parameters, indexed by name
         """
-        parameters = self.empty_parameters(num_class)
         weight_loaded = np.load(path_to_npz)
+        num_class = weight_loaded['w_score_output'].shape[3]
+        parameters = self.empty_parameters(num_class)
+        para_list = []
+        for layer in parameters:
+            para_list.append(parameters[layer])
+        sess.run(tf.variables_initializer(var_list=para_list))
         for layer in weight_loaded:
             sess.run(parameters[layer].assign(weight_loaded[layer]))
         if (save_to_this):
