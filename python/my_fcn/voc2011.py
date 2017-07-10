@@ -52,6 +52,12 @@ class VOC2011:
         """
         return join(self.dataset_path, 'SegmentationClass', index + '.png')
 
+    def npz_ground_truth_path(self, index, npz_path = 'NPZGroundTruth'):
+        """
+            get path to npz ground truth file
+        """
+        return join(self.dataset_path, npz_path, index + '.npz')
+
     def color_map(self):
         """
             return a color map for class segmentation
@@ -142,11 +148,13 @@ class VOC2011:
         """
         return (self.index_next < len(self.train_index))
 
-    def next_batch(self, batch_size):
+    def next_batch(self, batch_size, load_npz_ground_truth_from = None):
         """
             get next batch, when an epoch finishes, a new random permutation is set and the first batch is returned
             batch_size : int
             batch_size = batch size
+            load_npz_ground_truth_from : string
+            load_npz_ground_truth_from = when this is not none, load ground truth from this directory
             --------------------------------------------------------------------------------------------
             return [img_set, ground_truth_set]
             img_set : numpy.ndarray
@@ -166,7 +174,10 @@ class VOC2011:
         for i in range(self.index_next, self.index_next + real_batch_size):
             img_index = self.train_index[self.permutation[i]]
             img_input = self.load_image(self.jpg_image_path(img_index))
-            ground_truth = self.load_ground_truth(self.segmentation_image_path(img_index))
+            if (load_npz_ground_truth_from is None):
+                ground_truth = self.load_ground_truth(self.segmentation_image_path(img_index))
+            else:
+                ground_truth = np.load(self.npz_ground_truth_path(img_index, load_npz_ground_truth_from))["ground_truth"]
             img_set[i - self.index_next] = img_input
             ground_truth_set[i - self.index_next] = ground_truth
         dup_cnt = 0
@@ -202,3 +213,16 @@ class VOC2011:
                 image[i, j, 1] = seg_col[label][1]
                 image[i, j, 2] = seg_col[label][2]
         return image
+
+    def convert_to_npz_ground_truth(self, npz_path = 'NPZGroundTruth', resize = True):
+        """
+            convert the segmentation ground truth to npz files
+            npz_path : string
+            npz_path = directory where npz files are stored
+            resize : boolean
+            resize = when this is true, images are resized
+        """
+        for index in self.train_index:
+            filename = self.npz_ground_truth_path(index, npz_path)
+            ground_truth = self.load_ground_truth(self.segmentation_image_path(index), resize = resize)
+            np.savez(filename, ground_truth = ground_truth)

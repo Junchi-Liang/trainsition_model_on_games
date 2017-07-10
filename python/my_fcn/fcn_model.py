@@ -31,9 +31,9 @@ class FCN_model:
             self.train_loss = self.cross_entropy(self.train_net["score_output"], self.train_net["ground_truth"])
             self.train_optimizer = tf.train.RMSPropOptimizer(1e-4, momentum = 0.9, epsilon = 1e-8).minimize(self.train_loss)
         if (test_batch_size is not None):
-            self.test_net = self.build_computation_graph(self.parameters, test_batch_size, num_class, drop_out_prob, img_height, img_width, img_channel)
+            self.test_net = self.build_computation_graph(self.parameters, test_batch_size, num_class, drop_out_prob, img_height, img_width, img_channel, train_net = False)
 
-    def build_computation_graph(self, parameters, batch_size, num_class, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, input_layer = None):
+    def build_computation_graph(self, parameters, batch_size, num_class, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, input_layer = None, train_net = True):
         """
             build computation graph for the FCN architecture
             assume color images with RGB channels
@@ -53,6 +53,8 @@ class FCN_model:
             drop_out_prob = probability for drop out
             input_layer : tensorflow.python.framework.ops.Tensor
             input_layer = input layer. If it is None, a new layer of placeholder will be constructed
+            train_net : boolean
+            train_net = when this is true, there will be no drop out
             ------------------------------------------------
             return layers
             layers : dictionary
@@ -111,12 +113,18 @@ class FCN_model:
         layers["conv6"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool5"], parameters["w_conv6"], strides = [1, 1, 1, 1], \
                                          padding = 'SAME'), parameters["b_conv6"])
         layers["relu6"] = tf.nn.relu(layers["conv6"])
-        layers["dropout6"] = tf.nn.dropout(layers["relu6"], drop_out_prob)
-        layers["conv7"] = tf.nn.bias_add(tf.nn.conv2d(layers["dropout6"], parameters["w_conv7"], strides = [1, 1, 1, 1], \
+        conv6_result = "relu6"
+        if (train_net):
+            layers["dropout6"] = tf.nn.dropout(layers["relu6"], drop_out_prob)
+            conv6_result = "dropout6"
+        layers["conv7"] = tf.nn.bias_add(tf.nn.conv2d(layers[conv6_result], parameters["w_conv7"], strides = [1, 1, 1, 1], \
                                          padding = 'SAME'), parameters["b_conv7"])
         layers["relu7"] = tf.nn.relu(layers["conv7"])
-        layers["dropout7"] = tf.nn.dropout(layers["relu7"], drop_out_prob)
-        layers["score_up1"] = tf.nn.bias_add(tf.nn.conv2d(layers["dropout7"], parameters["w_score_up1"], strides = [1, 1, 1, 1], \
+        conv7_result = "relu7"
+        if (train_net):
+            layers["dropout7"] = tf.nn.dropout(layers["relu7"], drop_out_prob)
+            conv7_result = "dropout7"
+        layers["score_up1"] = tf.nn.bias_add(tf.nn.conv2d(layers[conv7_result], parameters["w_score_up1"], strides = [1, 1, 1, 1], \
                                           padding = 'SAME'), parameters["b_score_up1"])
         pool4_shape = [int(layers["pool4"].get_shape()[0]), int(layers["pool4"].get_shape()[1]), \
                        int(layers["pool4"].get_shape()[2]), int(layers["pool4"].get_shape()[3])]
