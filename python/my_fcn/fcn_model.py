@@ -205,11 +205,11 @@ class FCN_model:
         for layer in shared_layers:
             parameters['w_' + layer] = vgg_model.parameters['w_' + layer]
             parameters['b_' + layer] = vgg_model.parameters['b_' + layer]
-        parameters["w_conv6"] = nn_utils.cnn_utils.weight_convolution_normal([7, 7], 512, 4096)
+        parameters["w_conv6"] = nn_utils.cnn_utils.weight_convolution_normal([7, 7], 512, 4096, 0.1)
         if (sess is not None):
             sess.run(parameters["w_conv6"].assign(tf.reshape(vgg_model.parameters["w_fc6"], [7, 7, 512, 4096])))
         parameters["b_conv6"] = vgg_model.parameters["b_fc6"]
-        parameters["w_conv7"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 4096, 4096)
+        parameters["w_conv7"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 4096, 4096, 0.1)
         if (sess is not None):
             sess.run(parameters["w_conv7"].assign(tf.reshape(vgg_model.parameters["w_fc7"], [1, 1, 4096, 4096])))
         parameters["b_conv7"] = vgg_model.parameters["b_fc7"]
