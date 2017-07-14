@@ -26,13 +26,61 @@ class VGG16_model:
         self.image_channel = img_channel
         self.train_batch_size = training_batch_size
         self.test_batch_size = test_batch_size
+        if (pretrained_weight is None):
+            self.parameters = self.construct_parameters()
+        else:
+            self.parameters = pretrained_weight
         if (training_batch_size is not None):
-            self.train_net, self.parameters = self.construct_network_computation_graph(batch_size = training_batch_size, shared_weight = pretrained_weight)
+            self.train_net, _ = self.construct_network_computation_graph(batch_size = training_batch_size, shared_weight = self.parameters)
         if (test_batch_size is not None):
-            try:
-                self.test_net, self.parameters = self.construct_network_computation_graph(batch_size = test_batch_size, shared_weight = self.parameters)
-            except AttributeError:
-                self.test_net, self.parameters = self.construct_network_computation_graph(batch_size = test_batch_size, shared_weight = pretrained_weight)
+            self.test_net, _ = self.construct_network_computation_graph(batch_size = test_batch_size, shared_weight = self.parameters)
+
+    def construct_parameters(self, save_to_this = True):
+        """
+            construct parameter variables for VGG
+            save_to_this : boolean
+            save_to_this = when this True, this parameter is saved to this object
+            -------------------------------------------------------------------------------
+            return parameters
+            parameters : dictionary
+            parameters = collection of parameters used in this architecture, indexed by name
+        """
+        parameters = {}
+        parameters["w_conv1_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], self.image_channel, 64, 0.1)
+        parameters["b_conv1_1"] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
+        parameters["w_conv1_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 64, 0.1)
+        parameters["b_conv1_2"] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
+        parameters["w_conv2_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 128, 0.1)
+        parameters["b_conv2_1"] = nn_utils.cnn_utils.bias_convolution(128, 0.0)
+        parameters["w_conv2_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 128, 0.1)
+        parameters["b_conv2_2"] = nn_utils.cnn_utils.bias_convolution(128, 0.0)
+        parameters["w_conv3_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 256, 0.1)
+        parameters["b_conv3_1"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
+        parameters["w_conv3_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.1)
+        parameters["b_conv3_2"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
+        parameters["w_conv3_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.1)
+        parameters["b_conv3_3"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
+        parameters["w_conv4_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 512, 0.1)
+        parameters["b_conv4_1"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+        parameters["w_conv4_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+        parameters["b_conv4_2"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+        parameters["w_conv4_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+        parameters["b_conv4_3"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+        parameters["w_conv5_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+        parameters["b_conv5_1"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+        parameters["w_conv5_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+        parameters["b_conv5_2"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+        parameters["w_conv5_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+        parameters["b_conv5_3"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
+        parameters["w_fc6"] = nn_utils.cnn_utils.normal_weight_variable([25088, 4096], 0.1)
+        parameters["b_fc6"] = nn_utils.cnn_utils.bias_variable([4096], 1.0)
+        parameters["w_fc7"] = nn_utils.cnn_utils.normal_weight_variable([4096, 4096], 0.1)
+        parameters["b_fc7"] = nn_utils.cnn_utils.bias_variable([4096], 1.0)
+        parameters["w_fc8"] = nn_utils.cnn_utils.normal_weight_variable([4096, 1000], 0.1)
+        parameters["b_fc8"] = nn_utils.cnn_utils.bias_variable([1000], 1.0)
+        if (save_to_this):
+            self.parameters = parameters
+        return parameters
 
     def construct_network_computation_graph(self, input_layer = None, batch_size = 0, shared_weight = None):
         """
@@ -51,38 +99,7 @@ class VGG16_model:
             parameters = collection of parameters used in this architecture, indexed by name
         """
         if (shared_weight is None):
-            parameters = {}
-            parameters["w_conv1_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], self.image_channel, 64, 0.1)
-            parameters["b_conv1_1"] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
-            parameters["w_conv1_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 64, 0.1)
-            parameters["b_conv1_2"] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
-            parameters["w_conv2_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 128, 0.1)
-            parameters["b_conv2_1"] = nn_utils.cnn_utils.bias_convolution(128, 0.0)
-            parameters["w_conv2_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 128, 0.1)
-            parameters["b_conv2_2"] = nn_utils.cnn_utils.bias_convolution(128, 0.0)
-            parameters["w_conv3_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 256, 0.1)
-            parameters["b_conv3_1"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
-            parameters["w_conv3_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.1)
-            parameters["b_conv3_2"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
-            parameters["w_conv3_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.1)
-            parameters["b_conv3_3"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
-            parameters["w_conv4_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 512, 0.1)
-            parameters["b_conv4_1"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
-            parameters["w_conv4_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
-            parameters["b_conv4_2"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
-            parameters["w_conv4_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
-            parameters["b_conv4_3"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
-            parameters["w_conv5_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
-            parameters["b_conv5_1"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
-            parameters["w_conv5_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
-            parameters["b_conv5_2"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
-            parameters["w_conv5_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
-            parameters["b_conv5_3"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
-
-            parameters["w_fc7"] = nn_utils.cnn_utils.normal_weight_variable([4096, 4096], 0.1)
-            parameters["b_fc7"] = nn_utils.cnn_utils.bias_variable([4096], 1.0)
-            parameters["w_fc8"] = nn_utils.cnn_utils.normal_weight_variable([4096, 1000], 0.1)
-            parameters["b_fc8"] = nn_utils.cnn_utils.bias_variable([1000], 1.0)
+            parameters = self.construct_parameters(save_to_this = False)
         else:
             parameters = shared_weight
         layers = {}
@@ -137,9 +154,6 @@ class VGG16_model:
         layers["pool5"] = tf.nn.max_pool(layers["relu5_3"], ksize = [1, 2, 2, 1], strides = [1, 2, 2, 1], padding = 'SAME')
         pool5_size = int(layers["pool5"].shape[1]) * int(layers["pool5"].shape[2]) * int(layers["pool5"].shape[3])
         layers["flat"] = tf.reshape(layers["pool5"], [-1, pool5_size])
-        if (shared_weight is None):
-            parameters["w_fc6"] = nn_utils.cnn_utils.normal_weight_variable([pool5_size, 4096], 0.1)
-            parameters["b_fc6"] = nn_utils.cnn_utils.bias_variable([4096], 1.0)
         layers["fc6"] = tf.nn.bias_add(tf.matmul(layers["flat"], parameters["w_fc6"]), parameters["b_fc6"])
         layers["relu6"] = tf.nn.relu(layers["fc6"])
         layers["fc7"] = tf.nn.bias_add(tf.matmul(layers["relu6"], parameters["w_fc7"]), parameters["b_fc7"])
@@ -202,7 +216,11 @@ class VGG16_model:
         if (weight_input is None):
             weight_loaded = np.load(filename)
         else:
-            weight_loaded = weight_input
+            weight_loaded = weight_inputi
+        para_list = []
+        for para_name in self.parameters:
+            para_list.append(self.parameters[para_name])
+        sess.run(tf.variables_initializer(var_list = para_list))
         for para_name in match:
             if (display):
                 print para_name, match[para_name]
