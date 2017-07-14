@@ -7,7 +7,7 @@ class FCN_model:
     """
         My Implementation for FCN-8s
     """
-    def __init__(self, num_class, convert_from_vgg, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, training_batch_size = None, test_batch_size = None):
+    def __init__(self, num_class, convert_from_vgg, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, training_batch_size = None, test_batch_size = None, sess = None):
         """
             img_height : int
             img_height = height of images
@@ -23,8 +23,10 @@ class FCN_model:
             test_batch_size = batch size of test batch
             drop_out_prob : float
             drop_out_prob = probability for drop out
+            sess : tensorflow.Session
+            sess = session used for coverting parameters from VGG
         """
-        self.parameters = self.convert_VGG(convert_from_vgg, num_class)
+        self.parameters = self.convert_VGG(convert_from_vgg, num_class, sess)
         if (training_batch_size is not None):
             self.train_net = self.build_computation_graph(self.parameters, training_batch_size, num_class, drop_out_prob, img_height, img_width, img_channel)
             self.train_net["ground_truth"] = tf.placeholder(tf.int32, shape = [training_batch_size, img_height, img_width])
@@ -181,7 +183,7 @@ class FCN_model:
                 visualization[i, j, 2] = color[label][2]
         return [score_raw[0], segmentation_raw[0], visualization]
 
-    def convert_VGG(self, vgg_model, num_class, sess):
+    def convert_VGG(self, vgg_model, num_class, sess = None):
         """
             convert weights from VGG model to FCN
             vgg_model : VGG16_model
