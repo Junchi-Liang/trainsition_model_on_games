@@ -181,13 +181,15 @@ class FCN_model:
                 visualization[i, j, 2] = color[label][2]
         return [score_raw[0], segmentation_raw[0], visualization]
 
-    def convert_VGG(self, vgg_model, num_class):
+    def convert_VGG(self, vgg_model, num_class, sess):
         """
             convert weights from VGG model to FCN
             vgg_model : VGG16_model
             vgg_model = the vgg model which will be converted
             num_class : int
             num_class = number of output classes
+            sess : tensorflow.Session
+            sess = when this is not none, w_conv6 and w_conv7 will be assigned from VGG
             ---------------------------------------------------
             return parameters
             parameters : dictionary
@@ -201,9 +203,13 @@ class FCN_model:
         for layer in shared_layers:
             parameters['w_' + layer] = vgg_model.parameters['w_' + layer]
             parameters['b_' + layer] = vgg_model.parameters['b_' + layer]
-        parameters["w_conv6"] = tf.reshape(vgg_model.parameters["w_fc6"], [7, 7, 512, 4096])
+        parameters["w_conv6"] = nn_utils.cnn_utils.weight_convolution_normal([7, 7], 512, 4096)
+        if (sess is not None):
+            sess.run(parameters["w_conv6"].assign(tf.reshape(vgg_model.parameters["w_fc6"], [7, 7, 512, 4096])))
         parameters["b_conv6"] = vgg_model.parameters["b_fc6"]
-        parameters["w_conv7"] = tf.reshape(vgg_model.parameters["w_fc7"], [1, 1, 4096, 4096])
+        parameters["w_conv7"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 4096, 4096)
+        if (sess is not None):
+            sess.run(parameters["w_conv7"].assign(tf.reshape(vgg_model.parameters["w_fc7"], [1, 1, 4096, 4096])))
         parameters["b_conv7"] = vgg_model.parameters["b_fc7"]
         ext_param = self.extend_parameters(num_class)
         for layer in extended_layers:
