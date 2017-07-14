@@ -374,13 +374,14 @@ class FCN_model:
         """
         weight_loaded = np.load(path_to_npz)
         num_class = weight_loaded['w_score_output'].shape[3]
-        parameters = self.empty_parameters(num_class)
+        if (save_to_this):
+            parameters = self.parameters
+        else:
+            parameters = self.empty_parameters(num_class)
         para_list = []
         for layer in parameters:
             para_list.append(parameters[layer])
         sess.run(tf.variables_initializer(var_list=para_list))
         for layer in weight_loaded:
             sess.run(parameters[layer].assign(weight_loaded[layer]))
-        if (save_to_this):
-            self.parameters = parameters
         return parameters
