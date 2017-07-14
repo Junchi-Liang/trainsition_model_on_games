@@ -7,7 +7,7 @@ class FCN_model:
     """
         My Implementation for FCN-8s
     """
-    def __init__(self, num_class, convert_from_vgg, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, training_batch_size = None, test_batch_size = None, sess = None):
+    def __init__(self, num_class, convert_from_vgg = None, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, training_batch_size = None, test_batch_size = None, sess = None):
         """
             img_height : int
             img_height = height of images
@@ -26,7 +26,9 @@ class FCN_model:
             sess : tensorflow.Session
             sess = session used for coverting parameters from VGG
         """
-        self.parameters = self.convert_VGG(convert_from_vgg, num_class, sess)
+        self.parameters = self.empty_parameters(num_class)
+        if ((convert_from_vgg is not None) and (sess is not None)):
+            self.parameters = self.convert_VGG(convert_from_vgg, num_class, sess)
         if (training_batch_size is not None):
             self.train_net = self.build_computation_graph(self.parameters, training_batch_size, num_class, drop_out_prob, img_height, img_width, img_channel)
             self.train_net["ground_truth"] = tf.placeholder(tf.int32, shape = [training_batch_size, img_height, img_width])
@@ -183,7 +185,7 @@ class FCN_model:
                 visualization[i, j, 2] = color[label][2]
         return [score_raw[0], segmentation_raw[0], visualization]
 
-    def convert_VGG(self, vgg_model, num_class, sess = None):
+    def convert_VGG(self, vgg_model, num_class, sess):
         """
             convert weights from VGG model to FCN
             vgg_model : VGG16_model
@@ -191,33 +193,23 @@ class FCN_model:
             num_class : int
             num_class = number of output classes
             sess : tensorflow.Session
-            sess = when this is not none, w_conv6 and w_conv7 will be assigned from VGG
+            sess = session used for variable assignment
             ---------------------------------------------------
             return parameters
             parameters : dictionary
             parameters = collection of parameters used in this architecture, indexed by name
         """
-        parameters = {}
         shared_layers = ['conv1_1', 'conv1_2', 'conv2_1', 'conv2_2', 'conv3_1', 'conv3_2', 'conv3_3', \
                          'conv4_1', 'conv4_2', 'conv4_3', 'conv5_1', 'conv5_2', 'conv5_3']
         extended_layers = ['score_up1', 'score_up2', 'score_pool4', 'score_up4', \
                            'score_pool3', 'score_output']
         for layer in shared_layers:
-            parameters['w_' + layer] = vgg_model.parameters['w_' + layer]
-            parameters['b_' + layer] = vgg_model.parameters['b_' + layer]
-        parameters["w_conv6"] = nn_utils.cnn_utils.weight_convolution_normal([7, 7], 512, 4096, 0.1)
-        if (sess is not None):
-            sess.run(parameters["w_conv6"].assign(tf.reshape(vgg_model.parameters["w_fc6"], [7, 7, 512, 4096])))
-        parameters["b_conv6"] = vgg_model.parameters["b_fc6"]
-        parameters["w_conv7"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 4096, 4096, 0.1)
-        if (sess is not None):
-            sess.run(parameters["w_conv7"].assign(tf.reshape(vgg_model.parameters["w_fc7"], [1, 1, 4096, 4096])))
-        parameters["b_conv7"] = vgg_model.parameters["b_fc7"]
-        ext_param = self.extend_parameters(num_class)
-        for layer in extended_layers:
-            parameters['w_' + layer] = ext_param['w_' + layer]
-            parameters['b_' + layer] = ext_param['b_' + layer]
-        return parameters
+            sess.run(self.parameters['w_' + layer].assign(vgg_model.parameters['w_' + layer]))
+            sess.run(self.parameters['b_' + layer].assign(vgg_model.parameters['b_' + layer]))
+        sess.run(self.parameters["w_conv6"].assign(tf.reshape(vgg_model.parameters["w_fc6"], [7, 7, 512, 4096])))
+        sess.run(self.parameters["b_conv6"].assign(vgg_model.parameters["b_fc6"]))
+        sess.run(self.parameters["w_conv7"].assign(tf.reshape(vgg_model.parameters["w_fc7"], [1, 1, 4096, 4096])))
+        sess.run(self.parameters["b_conv7"].assign(vgg_model.parameters["b_fc7"]))
 
     def empty_parameters(self, num_class):
         """

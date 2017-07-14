@@ -26,7 +26,12 @@ class VOC2011:
         with open (train_list_filename, 'r')  as train_list_file:
             train_lines_raw = train_list_file.read().split('\n')
         train_list_file.close()
+        val_list_filename = join(path_list_filename, 'val.txt')
+        with open (val_list_filename, 'r') as val_list_file:
+            val_lines_raw = val_list_file.read().split('\n')
+        val_list_file.close()
         self.dataset_path = dataset_dir
+        self.val_index = [line for line in val_lines_raw if len(line) > 0]
         self.train_index = [line for line in train_lines_raw if len(line) > 0]
         self.img_height = img_height
         self.img_width = img_width
@@ -191,6 +196,33 @@ class VOC2011:
         self.index_next = self.index_next + batch_size
         return [img_set, ground_truth_set]
 
+    def val_batch(self, batch_size, load_npz_ground_truth_from = None):
+        """
+            get a random validation batch
+            batch_size : int
+            batch_size = batch size
+            load_npz_ground_truth_from : string
+            load_npz_ground_truth_from = when this is not none, load ground truth from this directory
+            return [img_set, ground_truth_set]
+            img_set : numpy.ndarray
+            img_set = image set, shape (batch size, image height, image width, 3)
+            ground_truth_set : numpy.ndarray
+            ground_truth_set = ground truth set, shape (batch size, image height, image width)
+        """
+        chosen = numpy.random.permutation(range(len(self.val_index)))[0 : batch_size]
+        img_set = np.zeros([batch_size, self.img_height, self.img_width, 3])
+        ground_truth_set = np.zeros([batch_size, self.img_height, self.img_width])
+        for i in range(batch_size):
+            img_index = self.val_index[chosen[i]]
+            img_input = self.load_image(self.jpg_image_path(img_index))
+            if (load_npz_ground_truth_from is None):
+                ground_truth = self.load_ground_truth(self.segmentation_image_path(img_index))
+            else:
+                ground_truth = np.load(self.npz_ground_truth_path(img_index, load_npz_ground_truth_from))["ground_truth"]
+            img_set[i] = img_input
+            ground_truth_set[i] = ground_truth
+        return [img_set, ground_truth_set]
+
     def visualize_segmentation(self, seg_output, color = None):
         """
             construct a color image according to segmentation result
@@ -222,7 +254,7 @@ class VOC2011:
             resize : boolean
             resize = when this is true, images are resized
         """
-        for index in self.train_index:
+        for index in (self.train_index + self.val_index):
             filename = self.npz_ground_truth_path(index, npz_path)
             ground_truth = self.load_ground_truth(self.segmentation_image_path(index), resize = resize)
             np.savez(filename, ground_truth = ground_truth)
