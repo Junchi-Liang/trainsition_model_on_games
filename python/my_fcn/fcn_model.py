@@ -36,6 +36,8 @@ class FCN_model:
             self.train_optimizer = tf.train.RMSPropOptimizer(1e-4, momentum = 0.9, epsilon = 1e-8).minimize(self.train_loss)
         if (test_batch_size is not None):
             self.test_net = self.build_computation_graph(self.parameters, test_batch_size, num_class, drop_out_prob, img_height, img_width, img_channel, train_net = False)
+            self.test_net["ground_truth"] = tf.placeholder(tf.int32, shape = [test_batch_size, img_height, img_width])
+            self.test_loss = self.cross_entropy(self.test_net["score_output"], self.test_net["ground_truth"])
 
     def build_computation_graph(self, parameters, batch_size, num_class, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, input_layer = None, train_net = True):
         """
