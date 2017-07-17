@@ -159,13 +159,15 @@ class VOC2011:
         """
         return (self.index_next < len(self.train_index))
 
-    def next_batch(self, batch_size, load_npz_ground_truth_from = None):
+    def next_batch(self, batch_size, load_npz_ground_truth_from = None, mean_img = None):
         """
             get next batch, when an epoch finishes, a new random permutation is set and the first batch is returned
             batch_size : int
             batch_size = batch size
             load_npz_ground_truth_from : string
             load_npz_ground_truth_from = when this is not none, load ground truth from this directory
+            mean_img : np.array
+            mean_img = when this is not None, all image will be substracted by this mean
             --------------------------------------------------------------------------------------------
             return [img_set, ground_truth_set]
             img_set : numpy.ndarray
@@ -189,7 +191,10 @@ class VOC2011:
                 ground_truth = self.load_ground_truth(self.segmentation_image_path(img_index))
             else:
                 ground_truth = np.load(self.npz_ground_truth_path(img_index, load_npz_ground_truth_from))["ground_truth"]
-            img_set[i - self.index_next] = img_input
+            if (mean_img is None):
+                img_set[i - self.index_next] = img_input
+            else:
+                img_set[i - self.index_next] = img_input - mean_img
             ground_truth_set[i - self.index_next] = ground_truth
         dup_cnt = 0
         while real_batch_size < batch_size:
@@ -202,13 +207,16 @@ class VOC2011:
         self.index_next = self.index_next + batch_size
         return [img_set, ground_truth_set]
 
-    def val_batch(self, batch_size, load_npz_ground_truth_from = None):
+    def val_batch(self, batch_size, load_npz_ground_truth_from = None, mean_img = None):
         """
             get a random validation batch
             batch_size : int
             batch_size = batch size
             load_npz_ground_truth_from : string
             load_npz_ground_truth_from = when this is not none, load ground truth from this directory
+            mean_img : np.array
+            mean_img = when this is not None, all image will be substracted by this mean
+            -------------------------------------------------------------------------------------------
             return [img_set, ground_truth_set]
             img_set : numpy.ndarray
             img_set = image set, shape (batch size, image height, image width, 3)
@@ -225,7 +233,10 @@ class VOC2011:
                 ground_truth = self.load_ground_truth(self.segmentation_image_path(img_index))
             else:
                 ground_truth = np.load(self.npz_ground_truth_path(img_index, load_npz_ground_truth_from))["ground_truth"]
-            img_set[i] = img_input
+            if (mean_img is None):
+                img_set[i] = img_input
+            else:
+                img_set[i] = img_input - mean_img
             ground_truth_set[i] = ground_truth
         return [img_set, ground_truth_set]
 
