@@ -10,7 +10,7 @@ class VOC2011:
     """
         Data Set Pascal VOC 2011
     """
-    def __init__(self, dataset_dir, img_height = None, img_width = None):
+    def __init__(self, dataset_dir, img_height = None, img_width = None, mean_img = None):
         """
             dataset_dir : string
             dataset_dir = directory of dataset. under this directory, 
@@ -20,6 +20,8 @@ class VOC2011:
             img_height = when this is not none, image will be resized to this height
             img_width : int
             img_width = when this us not none, image will be resized to this width
+            mean_img : np.array
+            mean_img = mean value of training set, when this is None, a mean will be computed
         """
         path_list_filename = join(dataset_dir, 'ImageSets/Segmentation')
         train_list_filename = join(path_list_filename, 'train.txt')
@@ -38,6 +40,10 @@ class VOC2011:
         self.segmentation_color = self.color_map()
         self._random_permutation()
         self.index_next = 0
+        if (mean_img is None):
+            self.mean_img = self.mean_image()
+        else:
+            self.mean_img = mean_img
 
     def _random_permutation(self):
         """
@@ -258,3 +264,23 @@ class VOC2011:
             filename = self.npz_ground_truth_path(index, npz_path)
             ground_truth = self.load_ground_truth(self.segmentation_image_path(index), resize = resize)
             np.savez(filename, ground_truth = ground_truth)
+
+    def mean_image(self, index_list = None):
+        """
+            get the mean value
+            index_list : list
+            index_list = when this not none, the mean of images from this list will be returned.
+                         otherwise, self.train_index will be used
+            -------------------------------------------------------------------------------------
+            return mean_img
+            mean_img : np.array
+            mean_img = mean value of images from the list
+        """
+        if (index_list is None):
+            index_list = self.train_index
+        img_set = np.zeros([len(index_list), self.img_height, self.img_width, 3], np.float)
+        for i in range(len(index_list)):
+            img_index = index_list[i]
+            img_set[i] = self.load_image(self.jpg_image_path(img_index))
+        mean_img = np.mean(img_set, axis = 0)
+        return mean_img
