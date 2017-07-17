@@ -7,7 +7,7 @@ class FCN_model:
     """
         My Implementation for FCN-8s
     """
-    def __init__(self, num_class, convert_from_vgg = None, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, training_batch_size = None, test_batch_size = None, sess = None, learning_rate):
+    def __init__(self, num_class, convert_from_vgg = None, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, training_batch_size = None, test_batch_size = None, sess = None, learning_rate = 1e-4):
         """
             img_height : int
             img_height = height of images
