@@ -11,7 +11,6 @@ class SBD:
     """
         Dataset Reader: Semantic Boundaries Dataset
         http://home.bharathh.info/pubs/codes/SBD/download.html
-        g = x['GTcls'][0][0][1]
     """
     def __init__(self, dataset_dir, img_height = None, img_width = None, mean_img = None):
         """
@@ -58,3 +57,70 @@ class SBD:
             get path to ground truth .mat files
         """
        return join(self.dataset_path, 'cls', index + '.mat')
+
+    def load_image(self, img_path, resize = True, interp = 'nearest'):
+        """
+            load an image
+            img_path : string
+            img_path = path to the image
+            resize : boolean
+            resize = indicator for if this image should be resized.
+            interp : string
+            interp = Interpolation to use for re-sizing ('nearest', 'lanczos', 'bilinear', 'bicubic' or 'cubic')
+            ------------------------------------------------------------------------------------------
+            return image
+            image : numpy.ndarray
+            image = loaded image, shape (h, w, 3), its channels are RGB
+        """
+        img_raw = scipy.misc.imread(img_path, mode = 'RGB')
+        if (resize):
+            img = scipy.misc.imresize(img_raw, [self.img_height, self.img_width, 3], interp = interp)
+            return img
+        else:
+            return img_raw
+
+    def load_ground_truth(self, mat_path, resize = True, interp = 'nearest'):
+        """
+            load a .mat ground truth file
+            mat_path : string
+            mat_path = path to the .mat file
+            resize : boolean
+            resize = indicator for if this image should be resized
+            interp : string
+            interp = Interpolation to use for re-sizing ('nearest', 'lanczos', 'bilinear', 'bicubic' or 'cubic')
+            --------------------------------------------------------------------------------------------
+            return ground_truth
+            ground_truth : numpy.ndarray
+            ground_truth = ground truth loaded, shape (h, w)
+        """
+        raw_mat = scipy.io.loadmat(mat_path)
+        raw_ground_truth = raw_mat['GTcls'][0][0][1]
+        if (resize):
+            ground_truth = scipy.misc.imresize(raw_ground_truth, [self.img_height, self.img_width], interp = interp)
+        else:
+            ground_truth = raw_ground_truth
+        return ground_truth
+
+    def has_next(self):
+        """
+            check if there is next batch
+        """
+        return (self.next_train_index < len(self.train_index))
+
+    def next_batch(self, batch_size, mean_img = None):
+        """
+            get next batch, when an epoch finishes, a new random permutation is set and the first batch is returned
+            batch_size : int
+            batch_size = batch size
+            mean_img : np.array
+            mean_img = when this is not none, all image will be substracted by this mean
+            --------------------------------------------------------------------------------------------
+            return [img_set, ground_truth_set]
+            img_set : numpy.ndarray
+            img_set = image set, shape (batch size, image height, image width, 3)
+            ground_truth_set : numpy.ndarray
+            ground_truth_set = ground truth set, shape (batch size, image height, image width)
+        """
+        if (not self.has_next()):
+            self._random_permutation()
+            self.next_train_index = 0
