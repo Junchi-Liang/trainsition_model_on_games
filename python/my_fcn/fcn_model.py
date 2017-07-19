@@ -139,7 +139,8 @@ class FCN_model:
         layers["score_up2"] = tf.nn.bias_add(tf.nn.conv2d_transpose(layers["score_up1"], parameters["w_score_up2"], \
                                             output_shape = [pool4_shape[0], pool4_shape[1], pool4_shape[2], num_class], \
                                             strides = [1, 2, 2, 1], padding = 'SAME'), parameters["b_score_up2"])
-        layers["score_pool4"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool4"], parameters["w_score_pool4"], \
+        layers["pool4_scale"] = 0.01 * layers["pool4"]
+        layers["score_pool4"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool4_scale"], parameters["w_score_pool4"], \
                                                strides = [1, 1, 1, 1], padding = 'SAME'), parameters["b_score_pool4"])
         layers["fuse_pool4"] = tf.add(layers["score_up2"], layers["score_pool4"])
         pool3_shape = [int(layers["pool3"].get_shape()[0]), int(layers["pool3"].get_shape()[1]), \
@@ -147,7 +148,8 @@ class FCN_model:
         layers["score_up4"] = tf.nn.bias_add(tf.nn.conv2d_transpose(layers["fuse_pool4"], parameters["w_score_up4"], \
                                             output_shape = [pool3_shape[0], pool3_shape[1], pool3_shape[2], num_class], \
                                             strides = [1, 2, 2, 1], padding = 'SAME'), parameters["b_score_up4"])
-        layers["score_pool3"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool3"], parameters["w_score_pool3"], \
+        layers["pool3_scale"] = 0.0001 * layers["pool3"]
+        layers["score_pool3"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool3_scale"], parameters["w_score_pool3"], \
                                                strides = [1, 1, 1, 1], padding = 'SAME'), parameters["b_score_pool3"])
         layers["fuse_pool3"] = tf.add(layers["score_pool3"], layers["score_up4"])
         layers["score_output"] = tf.nn.bias_add(tf.nn.conv2d_transpose(layers["fuse_pool3"], parameters["w_score_output"], \
