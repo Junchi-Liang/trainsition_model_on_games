@@ -1,4 +1,4 @@
-mport numpy as np
+import numpy as np
 import nn_utils.cnn_utils
 import scipy.misc
 import scipy.io
@@ -56,7 +56,7 @@ class SBD:
         """
             get path to ground truth .mat files
         """
-       return join(self.dataset_path, 'cls', index + '.mat')
+        return join(self.dataset_path, 'cls', index + '.mat')
 
     def load_image(self, img_path, resize = True, interp = 'nearest'):
         """
@@ -124,3 +124,75 @@ class SBD:
         if (not self.has_next()):
             self._random_permutation()
             self.next_train_index = 0
+        if (self.next_train_index + batch_size < len(self.train_index)):
+            real_batch_size = batch_size
+        else:
+            real_batch_size = len(self.train_index) - self.next_train_index
+        img_set = np.zeros([batch_size, self.img_height, self.img_width, 3])
+        ground_truth_set = np.zeros([batch_size, self.img_height, self.img_width])
+        for i in range(self.next_train_index, self.next_train_index + real_batch_size):
+            img_index = self.train_index[self.permutation[i]]
+            img_input = self.load_image(self.raw_image_path(img_index))
+            ground_truth = self.load_ground_truth(self.ground_truth_path(img_index))
+            if (mean_img is None):
+                img_set[i - self.next_train_index] = img_input
+            else:
+                img_set[i - self.next_train_index] = img_input - mean_img
+            ground_truth_set[i - self.next_train_index] = ground_truth
+        dup_cnt = 0
+        while (real_batch_size < batch_size):
+            img_set[real_batch_size] = img_set[dup_cnt]
+            ground_truth_set[real_batch_size] = ground_truth_set[dup_cnt]
+            real_batch_size = real_batch_size + 1
+            dup_cnt = dup_cnt + 1
+        self.next_train_index = self.next_train_index + batch_size
+        return [img_set, ground_truth_set]
+
+    def val_batch(self, batch_size, mean_img = None):
+        """
+            get a random validation batch
+            batch_size : int
+            batch_size = batch size
+            mean_img : np.array
+            mean_img = when this is not None, all image will be substracted by this mean
+            -------------------------------------------------------------------------------------------
+            return [img_set, ground_truth_set]
+            img_set : numpy.ndarray
+            img_set = image set, shape (batch size, image height, image width, 3)
+            ground_truth_set : numpy.ndarray
+            ground_truth_set = ground truth set, shape (batch size, image height, image width)
+        """
+        chosen = numpy.random.permutation(range(len(self.val_index)))[0 : batch_size]
+        img_set = np.zeros([batch_size, self.img_height, self.img_width, 3])
+        ground_truth_set = np.zeros([batch_size, self.img_height, self.img_width])
+        for i in range(batch_size):
+            img_index = self.val_index[chosen[i]]
+            img_input = self.load_image(self.raw_image_path(img_index))
+            ground_truth = self.load_ground_truth(self.ground_truth_path(img_index))
+            if (mean_img is None):
+                img_set[i] = img_input
+            else:
+                img_set[i] = img_input - mean_img
+            ground_truth_set[i] = ground_truth
+        return [img_set, ground_truth_set]
+
+    def mean_image(self, index_list = None):
+        """
+            get the mean value
+            index_list : list
+            index_list = when this not none, the mean of images from this list will be returned.
+                         otherwise, self.train_index will be used
+            -------------------------------------------------------------------------------------
+            return mean_img
+            mean_img : np.array
+            mean_img = mean value of images from the list
+        """
+        if (index_list is None):
+            index_list = self.train_index
+        img_set = np.zeros([len(index_list), self.img_height, self.img_width, 3], np.float)
+        for i in range(len(index_list)):
+            img_index = index_list[i]
+            img_set[i] = self.load_image(self.raw_image_path(img_index))
+        mean_img = np.mean(img_set, axis = 0)
+        return mean_img
+
