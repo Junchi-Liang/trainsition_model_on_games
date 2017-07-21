@@ -218,7 +218,7 @@ class FCN_model:
         sess.run(self.parameters["w_conv7"].assign(tf.reshape(vgg_model.parameters["w_fc7"], [1, 1, 4096, 4096])))
         sess.run(self.parameters["b_conv7"].assign(vgg_model.parameters["b_fc7"]))
         sess.run(self.parameters["w_score_up2"].assign(self.bilinear_filter(4, 4, num_class, num_class)))
-        sess.run(self.parameters["w_score_up4"]).assign(self.bilinear_filter(4, 4, num_class, num_class))
+        sess.run(self.parameters["w_score_up4"].assign(self.bilinear_filter(4, 4, num_class, num_class)))
         sess.run(self.parameters["w_score_output"].assign(self.bilinear_filter(16, 16, num_class, num_class)))
 
     def empty_parameters(self, num_class):
