@@ -1,3 +1,4 @@
+from __future__ import division
 import tensorflow as tf
 import numpy as np
 import nn_utils.cnn_utils
@@ -136,25 +137,25 @@ class FCN_model:
                                           padding = 'SAME'), parameters["b_score_up1"])
         pool4_shape = [int(layers["pool4"].get_shape()[0]), int(layers["pool4"].get_shape()[1]), \
                        int(layers["pool4"].get_shape()[2]), int(layers["pool4"].get_shape()[3])]
-        layers["score_up2"] = tf.nn.bias_add(tf.nn.conv2d_transpose(layers["score_up1"], parameters["w_score_up2"], \
-                                            output_shape = [pool4_shape[0], pool4_shape[1], pool4_shape[2], num_class], \
-                                            strides = [1, 2, 2, 1], padding = 'SAME'), parameters["b_score_up2"])
+        layers["score_up2"] = tf.nn.conv2d_transpose(layers["score_up1"], parameters["w_score_up2"], \
+                                                     output_shape = [pool4_shape[0], pool4_shape[1], pool4_shape[2], num_class], \
+                                                     strides = [1, 2, 2, 1], padding = 'SAME')
         layers["pool4_scale"] = 0.01 * layers["pool4"]
         layers["score_pool4"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool4_scale"], parameters["w_score_pool4"], \
                                                strides = [1, 1, 1, 1], padding = 'SAME'), parameters["b_score_pool4"])
         layers["fuse_pool4"] = tf.add(layers["score_up2"], layers["score_pool4"])
         pool3_shape = [int(layers["pool3"].get_shape()[0]), int(layers["pool3"].get_shape()[1]), \
                        int(layers["pool3"].get_shape()[2]), int(layers["pool3"].get_shape()[3])]
-        layers["score_up4"] = tf.nn.bias_add(tf.nn.conv2d_transpose(layers["fuse_pool4"], parameters["w_score_up4"], \
-                                            output_shape = [pool3_shape[0], pool3_shape[1], pool3_shape[2], num_class], \
-                                            strides = [1, 2, 2, 1], padding = 'SAME'), parameters["b_score_up4"])
+        layers["score_up4"] = tf.nn.conv2d_transpose(layers["fuse_pool4"], parameters["w_score_up4"], \
+                                                     output_shape = [pool3_shape[0], pool3_shape[1], pool3_shape[2], num_class], \
+                                                     strides = [1, 2, 2, 1], padding = 'SAME')
         layers["pool3_scale"] = 0.0001 * layers["pool3"]
         layers["score_pool3"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool3_scale"], parameters["w_score_pool3"], \
                                                strides = [1, 1, 1, 1], padding = 'SAME'), parameters["b_score_pool3"])
         layers["fuse_pool3"] = tf.add(layers["score_pool3"], layers["score_up4"])
-        layers["score_output"] = tf.nn.bias_add(tf.nn.conv2d_transpose(layers["fuse_pool3"], parameters["w_score_output"], \
-                                                output_shape = [batch_size, img_height, img_width, num_class], \
-                                                strides = [1, 8, 8, 1], padding = 'SAME'), parameters["b_score_output"])
+        layers["score_output"] = tf.nn.conv2d_transpose(layers["fuse_pool3"], parameters["w_score_output"], \
+                                                        output_shape = [batch_size, img_height, img_width, num_class], \
+                                                        strides = [1, 8, 8, 1], padding = 'SAME')
         return layers
 
     def infer_an_image(self, image, sess, color):
@@ -216,6 +217,9 @@ class FCN_model:
         sess.run(self.parameters["b_conv6"].assign(vgg_model.parameters["b_fc6"]))
         sess.run(self.parameters["w_conv7"].assign(tf.reshape(vgg_model.parameters["w_fc7"], [1, 1, 4096, 4096])))
         sess.run(self.parameters["b_conv7"].assign(vgg_model.parameters["b_fc7"]))
+        sess.run(self.parameters["w_score_up2"].assign(self.bilinear_filter(4, 4, num_class, num_class)))
+        sess.run(self.parameters["w_score_up4"]).assign(self.bilinear_filter(4, 4, num_class, num_class))
+        sess.run(self.parameters["w_score_output"].assign(self.bilinear_filter(16, 16, num_class, num_class)))
 
     def empty_parameters(self, num_class):
         """
@@ -277,16 +281,51 @@ class FCN_model:
         parameters["w_score_up1"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 4096, num_class, 0.1)
         parameters["b_score_up1"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
         parameters["w_score_up2"] = nn_utils.cnn_utils.weight_deconvolution_normal([4, 4], num_class, num_class, 0.1)
-        parameters["b_score_up2"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
         parameters["w_score_pool4"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 512, num_class, 0.1)
         parameters["b_score_pool4"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
         parameters["w_score_up4"] = nn_utils.cnn_utils.weight_deconvolution_normal([4, 4], num_class, num_class, 0.1)
-        parameters["b_score_up4"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
         parameters["w_score_pool3"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 256, num_class, 0.1)
         parameters["b_score_pool3"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
         parameters["w_score_output"] = nn_utils.cnn_utils.weight_deconvolution_normal([16, 16], num_class, num_class, 0.1)
-        parameters["b_score_output"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
         return parameters
+
+    def bilinear_filter(self, filter_height, filter_width, channel_input, channel_output):
+        """
+            get a filter of bilinear
+            filter_height : int
+            filter_height = height of the filter
+            filter_width : int
+            filter_width = width of the filter
+            channel_input : int
+            channel_input = number of input channels
+            channel_output : int
+            channel_output = number of output channels
+            ----------------------------------------------------
+            return weight
+            weight : np.ndarray
+            weight = the filter for bilinear, shape (filter_height, filter_width, channel_output, channel_input)
+        """
+        weight = np.zeros([filter_height, filter_width, channel_output, channel_input], np.float)
+        bilinear = np.zeros([filter_height, filter_width], np.float)
+        factor = [(filter_height + 1) // 2, (filter_width + 1) // 2]
+        center = []
+        if (filter_height % 2 == 1):
+            center.append(factor[0] - 1)
+        else:
+            center.append(factor[0] - 0.5)
+        if (filter_width % 2 == 1):
+            center.append(factor[1] - 1)
+        else:
+            center.append(factor[1] - 0.5)
+        for i in range(bilinear.shape[0]):
+            for j in range(bilinear.shape[1]):
+                f0 = 1 - abs(i - center[0]) / factor[0]
+                f1 = 1 - abs(j - center[1]) / factor[1]
+                bilinear[i, j] = f0 * f1
+        for i in range(weight.shape[2]):
+            for j in range(weight.shape[3]):
+                weight[:, :, i, j] = bilinear
+        return weight
 
     def cross_entropy(self, logit_layer, label):
         """
@@ -343,15 +382,12 @@ class FCN_model:
         w_score_up1 = sess.run(self.parameters["w_score_up1"])
         b_score_up1 = sess.run(self.parameters["b_score_up1"])
         w_score_up2 = sess.run(self.parameters["w_score_up2"])
-        b_score_up2 = sess.run(self.parameters["b_score_up2"])
         w_score_pool4 = sess.run(self.parameters["w_score_pool4"])
         b_score_pool4 = sess.run(self.parameters["b_score_pool4"])
         w_score_up4 = sess.run(self.parameters["w_score_up4"])
-        b_score_up4 = sess.run(self.parameters["b_score_up4"])
         w_score_pool3 = sess.run(self.parameters["w_score_pool3"])
         b_score_pool3 = sess.run(self.parameters["b_score_pool3"])
         w_score_output = sess.run(self.parameters["w_score_output"])
-        b_score_output = sess.run(self.parameters["b_score_output"])
         np.savez(path_to_file, \
                  w_conv1_1 = w_conv1_1, b_conv1_1 = b_conv1_1, w_conv1_2 = w_conv1_2, b_conv1_2 = b_conv1_2,\
                  w_conv2_1 = w_conv2_1, b_conv2_1 = b_conv2_1, w_conv2_2 = w_conv2_2, b_conv2_2 = b_conv2_2,\
@@ -359,10 +395,10 @@ class FCN_model:
                  w_conv4_1 = w_conv4_1, b_conv4_1 = b_conv4_1, w_conv4_2 = w_conv4_2, b_conv4_2 = b_conv4_2, w_conv4_3 = w_conv4_3, b_conv4_3 = b_conv4_3,\
                  w_conv5_1 = w_conv5_1, b_conv5_1 = b_conv5_1, w_conv5_2 = w_conv5_2, b_conv5_2 = b_conv5_2, w_conv5_3 = w_conv5_3, b_conv5_3 = b_conv5_3,\
                  w_conv6 = w_conv6, b_conv6 = b_conv6, w_conv7 = w_conv7, b_conv7 = b_conv7,\
-                 w_score_up1 = w_score_up1, b_score_up1 = b_score_up1, w_score_up2 = w_score_up2, b_score_up2 = b_score_up2,\
+                 w_score_up1 = w_score_up1, b_score_up1 = b_score_up1, w_score_up2 = w_score_up2, \
                  w_score_pool4 = w_score_pool4, b_score_pool4 = b_score_pool4,\
-                 w_score_up4 = w_score_up4, b_score_up4 = b_score_up4, w_score_pool3 = w_score_pool3, b_score_pool3 = b_score_pool3,\
-                 w_score_output = w_score_output, b_score_output = b_score_output)
+                 w_score_up4 = w_score_up4, w_score_pool3 = w_score_pool3, b_score_pool3 = b_score_pool3,\
+                 w_score_output = w_score_output)
 
     def load_weights_from_npz(self, path_to_npz, sess, save_to_this = True):
         """
