@@ -12,7 +12,7 @@ class SBD:
         Dataset Reader: Semantic Boundaries Dataset
         http://home.bharathh.info/pubs/codes/SBD/download.html
     """
-    def __init__(self, dataset_dir, img_height = None, img_width = None, mean_img = None):
+    def __init__(self, dataset_dir, img_height = None, img_width = None, mean_img = None, load_to_memory = True):
         """
             dataset_dir : string
             dataset_dir = directory of dataset. under this directory, 
@@ -23,6 +23,8 @@ class SBD:
             img_width = when this us not none, image will be resized to this width
             mean_img : np.array
             mean_img = mean value of training set, when this is None, a mean will be computed
+            load_to_memory : boolean
+            load_to_memory = when this is True, all images and ground truth will be loaded to memory
         """
         self.dataset_path = dataset_dir
         self.img_height = img_height
@@ -39,6 +41,33 @@ class SBD:
         self.val_index = [line for line in val_lines_raw if len(line) > 0]
         self.next_train_index = 0
         self._random_permutation()
+        self.in_memory = load_to_memory
+        if (load_to_memory):
+            self.img_all, self.ground_truth_all = self.load_all_to_memory(self.train_index + self.val_index)
+
+    def load_all_to_memory(self, index_list, display = True):
+        """
+            load all images and ground truth to memory
+            index_list : list
+            index_list = list of index
+            display : boolean
+            display = when this is True, display proceeding
+            ----------------------------------------------
+            return [img_all, ground_truth_all]
+            img_all : dictionay
+            img_all = collection of raw images, index is the same as items in index_list
+            ground_truth_all : dictionay
+            ground_truth_all = collection of ground truth, index is the same as items in index_list
+        """
+        img_all = {}
+        ground_truth_all = {}
+        for i in range(len(index_list)):
+            index = index_list[i]
+            img_all[index] = self.load_image(self.raw_image_path(index), resize = False)
+            ground_truth_all[index] = self.load_ground_truth(self.ground_truth_path(index), resize = False)
+            if (display):
+                print 'loading', i + 1, '/', len(index_list)
+        return [img_all, ground_truth_all]
 
     def _random_permutation(self):
         """
@@ -58,11 +87,13 @@ class SBD:
         """
         return join(self.dataset_path, 'cls', index + '.mat')
 
-    def load_image(self, img_path, resize = True, interp = 'nearest'):
+    def load_image(self, img_path = None, load_index = None, resize = True, interp = 'nearest'):
         """
             load an image
             img_path : string
             img_path = path to the image
+            load_index : string
+            load_index = when this is not None, load image with this index from memory
             resize : boolean
             resize = indicator for if this image should be resized.
             interp : string
@@ -72,18 +103,23 @@ class SBD:
             image : numpy.ndarray
             image = loaded image, shape (h, w, 3), its channels are RGB
         """
-        img_raw = scipy.misc.imread(img_path, mode = 'RGB')
+        if (load_index is None):
+            img_raw = scipy.misc.imread(img_path, mode = 'RGB')
+        else:
+            img_raw = self.img_all[load_index]
         if (resize):
             img = scipy.misc.imresize(img_raw, [self.img_height, self.img_width, 3], interp = interp)
             return img
         else:
             return img_raw
 
-    def load_ground_truth(self, mat_path, resize = True, interp = 'nearest'):
+    def load_ground_truth(self, mat_path = None, load_index = None, resize = True, interp = 'nearest'):
         """
             load a .mat ground truth file
             mat_path : string
             mat_path = path to the .mat file
+            load_index : string
+            load_index = when this is not None, load ground truth with this index from memory
             resize : boolean
             resize = indicator for if this image should be resized
             interp : string
@@ -93,8 +129,11 @@ class SBD:
             ground_truth : numpy.ndarray
             ground_truth = ground truth loaded, shape (h, w)
         """
-        raw_mat = scipy.io.loadmat(mat_path)
-        raw_ground_truth = raw_mat['GTcls'][0][0][1]
+        if (load_index is None):
+            raw_mat = scipy.io.loadmat(mat_path)
+            raw_ground_truth = raw_mat['GTcls'][0][0][1]
+        else:
+            raw_ground_truth = self.ground_truth_all[load_index]
         if (resize):
             ground_truth = scipy.misc.imresize(raw_ground_truth, [self.img_height, self.img_width], interp = interp)
         else:
@@ -132,8 +171,12 @@ class SBD:
         ground_truth_set = np.zeros([batch_size, self.img_height, self.img_width])
         for i in range(self.next_train_index, self.next_train_index + real_batch_size):
             img_index = self.train_index[self.permutation[i]]
-            img_input = self.load_image(self.raw_image_path(img_index))
-            ground_truth = self.load_ground_truth(self.ground_truth_path(img_index))
+            if (self.in_memory):
+                img_input = self.load_image(None, img_index)
+                ground_truth = self.load_ground_truth(None, img_index)
+            else:
+                img_input = self.load_image(self.raw_image_path(img_index))
+                ground_truth = self.load_ground_truth(self.ground_truth_path(img_index))
             if (mean_img is None):
                 img_set[i - self.next_train_index] = img_input
             else:
@@ -167,8 +210,12 @@ class SBD:
         ground_truth_set = np.zeros([batch_size, self.img_height, self.img_width])
         for i in range(batch_size):
             img_index = self.val_index[chosen[i]]
-            img_input = self.load_image(self.raw_image_path(img_index))
-            ground_truth = self.load_ground_truth(self.ground_truth_path(img_index))
+            if (self.in_memory):
+                img_input = self.load_image(None, img_index)
+                ground_truth = self.load_ground_truth(None, img_index)
+            else:
+                img_input = self.load_image(self.raw_image_path(img_index))
+                ground_truth = self.load_ground_truth(self.ground_truth_path(img_index))
             if (mean_img is None):
                 img_set[i] = img_input
             else:
