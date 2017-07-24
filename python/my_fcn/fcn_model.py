@@ -8,7 +8,7 @@ class FCN_model:
     """
         My Implementation for FCN-8s
     """
-    def __init__(self, num_class, convert_from_vgg = None, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, training_batch_size = None, test_batch_size = None, sess = None, learning_rate = 1e-4):
+    def __init__(self, num_class, convert_from_vgg = None, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, training_batch_size = None, test_batch_size = None, sess = None, learning_rate = 1e-4, weight_decay_coefficient = 5e-4):
         """
             img_height : int
             img_height = height of images
@@ -28,19 +28,23 @@ class FCN_model:
             sess = session used for coverting parameters from VGG
             learning_rate : float
             learning_rate = when a training network is constructed, this will be the learning rate
+            weight_decay_coefficient : float
+            weight_decay_coefficient = coefficient for weight decay
         """
         self.parameters = self.empty_parameters(num_class)
+        self.weight_decay_loss = self.weight_decay(weight_decay_coefficient)
         if ((convert_from_vgg is not None) and (sess is not None)):
             self.parameters = self.convert_VGG(convert_from_vgg, num_class, sess)
         if (training_batch_size is not None):
             self.train_net = self.build_computation_graph(self.parameters, training_batch_size, num_class, drop_out_prob, img_height, img_width, img_channel)
             self.train_net["ground_truth"] = tf.placeholder(tf.int32, shape = [training_batch_size, img_height, img_width])
-            self.train_loss = self.cross_entropy(self.train_net["score_output"], self.train_net["ground_truth"])
+            self.train_cross_entropy = self.cross_entropy(self.train_net["score_output"], self.train_net["ground_truth"])
+            self.train_loss = self.train_cross_entropy + self.weight_decay_loss
             self.train_optimizer = tf.train.RMSPropOptimizer(learning_rate, momentum = 0.9, epsilon = 1e-8).minimize(self.train_loss)
         if (test_batch_size is not None):
             self.test_net = self.build_computation_graph(self.parameters, test_batch_size, num_class, drop_out_prob, img_height, img_width, img_channel, train_net = False)
             self.test_net["ground_truth"] = tf.placeholder(tf.int32, shape = [test_batch_size, img_height, img_width])
-            self.test_loss = self.cross_entropy(self.test_net["score_output"], self.test_net["ground_truth"])
+            self.test_cross_entropy = self.cross_entropy(self.test_net["score_output"], self.test_net["ground_truth"])
 
     def build_computation_graph(self, parameters, batch_size, num_class, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, input_layer = None, train_net = True):
         """
@@ -340,6 +344,31 @@ class FCN_model:
             loss = a computation node for loss
         """
         return tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits = logit_layer, labels = label))
+
+    def weight_decay(self, weight_decay_coefficient, weights_list = None):
+        """
+            weight decay
+            weight_decay_coefficient : float
+            weight_decay_coefficient = coefficient for weight decay
+            weights_list : list
+            weights_list = when this is not None, return a weight decay from this list
+            -----------------------------------------------------------------
+            return wd
+            wd : tensorflow.python.framework.ops.Tensor
+            wd = weight decay
+        """
+        if (weights_list is None):
+            wd_list = ["w_conv1_1", "w_conv1_2", "w_conv2_1", "w_conv2_2", "w_conv3_1", "w_conv3_2", "w_conv3_3",\
+                       "w_conv4_1", "w_conv4_2", "w_conv4_3", "w_conv5_1", "w_conv5_2", "w_conv5_3", "w_conv6",\
+                       "w_conv7", "w_score_up1", "w_score_up2", "w_score_pool4", "w_score_up4", "w_score_pool3",\
+                       "w_score_output"]
+            weights_list = []
+            for layer in wd_list:
+                weights_list.append(self.parameters[layer])
+        for weight in weights_list:
+            tf.add_to_collection("weight_decay_regularization",\
+                                  tf.multiply(tf.nn.l2_loss(weight), weight_decay_coefficient))
+        return tf.add_n(tf.get_collection("weight_decay_regularization"))
 
     def save_weights_to_npz(self, path_to_file, sess):
         """
