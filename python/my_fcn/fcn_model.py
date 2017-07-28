@@ -33,6 +33,7 @@ class FCN_model:
         """
         self.parameters = self.empty_parameters(num_class)
         self.weight_decay_loss = self.weight_decay(weight_decay_coefficient)
+        self.base_lr = learning_rate
         if ((convert_from_vgg is not None) and (sess is not None)):
             self.parameters = self.convert_VGG(convert_from_vgg, num_class, sess)
         if (training_batch_size is not None):
@@ -40,11 +41,77 @@ class FCN_model:
             self.train_net["ground_truth"] = tf.placeholder(tf.int32, shape = [training_batch_size, img_height, img_width])
             self.train_cross_entropy = self.cross_entropy(self.train_net["score_output"], self.train_net["ground_truth"])
             self.train_loss = self.train_cross_entropy + self.weight_decay_loss
-            self.train_optimizer = tf.train.RMSPropOptimizer(learning_rate, momentum = 0.9, epsilon = 1e-8).minimize(self.train_loss)
+            self.train_optimizer = tf.train.RMSPropOptimizer(learning_rate, momentum = 0.9, epsilon = 1e-8)
+            self.train_update = self.training_minimizer(self.train_optimizer, self.train_loss)
         if (test_batch_size is not None):
             self.test_net = self.build_computation_graph(self.parameters, test_batch_size, num_class, drop_out_prob, img_height, img_width, img_channel, train_net = False)
             self.test_net["ground_truth"] = tf.placeholder(tf.int32, shape = [test_batch_size, img_height, img_width])
             self.test_cross_entropy = self.cross_entropy(self.test_net["score_output"], self.test_net["ground_truth"])
+
+    def training_minimizer(self, optimizer, loss, lr_mult = None):
+        """
+            construct a customized loss function optimizer with different learning rate for different variables
+            optimizer : tf.train.Optimizer
+            optimizer = the optimizer used for minimizing the loss function
+            loss : tensorflow.python.framework.ops.Tensor
+            loss = loss function which should be minimized
+            lr_mult : dictionary
+            lr_mult = a collection of learning rate coefficient. 
+                      i.e. the learning rate for variable x, should be self.base_lr * lr_mult[x]
+            ------------------------------------------------------------------------------------
+            return minimizer
+            minimizer : tensorflow.python.framework.ops.Tensor
+            minimizer = the customized minimizer
+        """
+        if (lr_mult is None):
+            lr_mult = {}
+            lr_mult["w_conv1_1"] = 1.0
+            lr_mult["b_conv1_1"] = 2.0
+            lr_mult["w_conv1_2"] = 1.0
+            lr_mult["b_conv1_2"] = 2.0
+            lr_mult["w_conv2_1"] = 1.0
+            lr_mult["b_conv2_1"] = 2.0
+            lr_mult["w_conv2_2"] = 1.0
+            lr_mult["b_conv2_2"] = 2.0
+            lr_mult["w_conv3_1"] = 1.0
+            lr_mult["b_conv3_1"] = 2.0
+            lr_mult["w_conv3_2"] = 1.0
+            lr_mult["b_conv3_2"] = 2.0
+            lr_mult["w_conv3_3"] = 1.0
+            lr_mult["b_conv3_3"] = 2.0
+            lr_mult["w_conv4_1"] = 1.0
+            lr_mult["b_conv4_1"] = 2.0
+            lr_mult["w_conv4_2"] = 1.0
+            lr_mult["b_conv4_2"] = 2.0
+            lr_mult["w_conv4_3"] = 1.0
+            lr_mult["b_conv4_3"] = 2.0
+            lr_mult["w_conv5_1"] = 1.0
+            lr_mult["b_conv5_1"] = 2.0
+            lr_mult["w_conv5_2"] = 1.0
+            lr_mult["b_conv5_2"] = 2.0
+            lr_mult["w_conv5_3"] = 1.0
+            lr_mult["b_conv5_3"] = 2.0
+            lr_mult["w_conv6"] = 1.0
+            lr_mult["b_conv6"] = 2.0
+            lr_mult["w_conv7"] = 1.0
+            lr_mult["b_conv7"] = 2.0
+            lr_mult["w_score_up1"] = 1.0
+            lr_mult["b_score_up1"] = 2.0
+            lr_mult["w_score_up2"] = 1.0
+            lr_mult["w_score_pool4"] = 1.0
+            lr_mult["b_score_pool4"] = 2.0
+            lr_mult["w_score_up4"] = 1.0
+            lr_mult["w_score_pool3"] = 1.0
+            lr_mult["b_score_pool3"] = 2.0
+            lr_mult["w_score_output"] = 1.0
+        grads_and_vars = optimizer.compute_gradients(loss)
+        grads_and_vars_dict = {}
+        for g_v_pair in grads_and_vars:
+            grads_and_vars_dict[g_v_pair[1]] = g_v_pair[0]
+        customized_g_v = []
+        for p in self.parameters:
+            customized_g_v.append((grads_and_vars_dict[self.parameters[p]] * lr_mult[p], self.parameters[p]))
+        return optimizer.apply_gradients(customized_g_v)
 
     def build_computation_graph(self, parameters, batch_size, num_class, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, input_layer = None, train_net = True):
         """
