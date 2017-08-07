@@ -3,12 +3,13 @@ import tensorflow as tf
 import numpy as np
 import nn_utils.cnn_utils
 from my_vgg.vgg16_model import VGG16_model
+import scipy.io
 
 class FCN_model:
     """
         My Implementation for FCN-8s
     """
-    def __init__(self, num_class, convert_from_vgg = None, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, training_batch_size = None, test_batch_size = None, sess = None, learning_rate = 1e-4, weight_decay_coefficient = 5e-4):
+    def __init__(self, num_class, convert_from_vgg = None, drop_out_prob = 0.5, img_height = None, img_width = None, img_channel = None, training_batch_size = None, test_batch_size = None, sess = None, learning_rate = 1e-4, weight_decay_coefficient = 5e-4, vlfeat_model_path = None):
         """
             img_height : int
             img_height = height of images
@@ -25,13 +26,17 @@ class FCN_model:
             drop_out_prob : float
             drop_out_prob = probability for drop out
             sess : tensorflow.Session
-            sess = session used for coverting parameters from VGG
+            sess = session used for coverting parameters from VGG, or loading pretrained model
             learning_rate : float
             learning_rate = when a training network is constructed, this will be the learning rate
             weight_decay_coefficient : float
             weight_decay_coefficient = coefficient for weight decay
+            vlfeat_model_path : string
+            vlfeat_model_path = when this is not None, an vlfeat pretrained model in this path will be loaded
         """
         self.parameters = self.empty_parameters(num_class)
+        if (vlfeat_model_path is not None):
+            _ = self.load_vlfeat_pretrained_model(vlfeat_model_path, sess)
         self.weight_decay_loss = self.weight_decay(weight_decay_coefficient)
         self.base_lr = learning_rate
         if ((convert_from_vgg is not None) and (sess is not None)):
@@ -41,8 +46,7 @@ class FCN_model:
             self.train_net["ground_truth"] = tf.placeholder(tf.int32, shape = [training_batch_size, img_height, img_width])
             self.train_cross_entropy = self.cross_entropy(self.train_net["score_output"], self.train_net["ground_truth"])
             self.train_loss = self.train_cross_entropy + self.weight_decay_loss
-            self.train_optimizer = tf.train.RMSPropOptimizer(learning_rate, momentum = 0.9, epsilon = 1e-8)
-            self.train_update = self.training_minimizer(self.train_optimizer, self.train_loss)
+            self.train_update = tf.train.AdamOptimizer(learning_rate).minimize(self.train_loss)
         if (test_batch_size is not None):
             self.test_net = self.build_computation_graph(self.parameters, test_batch_size, num_class, drop_out_prob, img_height, img_width, img_channel, train_net = False)
             self.test_net["ground_truth"] = tf.placeholder(tf.int32, shape = [test_batch_size, img_height, img_width])
@@ -146,7 +150,8 @@ class FCN_model:
                                        batch_size, img_height, img_width, img_channel])
         else:
             layers["image_input"] = input_layer
-        layers["conv1_1"] = tf.nn.bias_add(tf.nn.conv2d(layers["image_input"],
+        layers["img_processed"] = layers["image_input"] - parameters["mean_rgb"]
+        layers["conv1_1"] = tf.nn.bias_add(tf.nn.conv2d(layers["img_processed"],
                                        parameters["w_conv1_1"], strides=[1, 1, 1, 1], padding='SAME'), parameters["b_conv1_1"])
         layers["relu1_1"] = tf.nn.relu(layers["conv1_1"])
         layers["conv1_2"] = tf.nn.bias_add(tf.nn.conv2d(layers["relu1_1"],
@@ -208,10 +213,10 @@ class FCN_model:
                                           padding = 'SAME'), parameters["b_score_up1"])
         pool4_shape = [int(layers["pool4"].get_shape()[0]), int(layers["pool4"].get_shape()[1]), \
                        int(layers["pool4"].get_shape()[2]), int(layers["pool4"].get_shape()[3])]
-        layers["score_up2"] = tf.nn.conv2d_transpose(layers["score_up1"], parameters["w_score_up2"], \
+        layers["score_up2"] = tf.nn.bias_add(tf.nn.conv2d_transpose(layers["score_up1"], parameters["w_score_up2"], \
                                                      output_shape = [pool4_shape[0], pool4_shape[1], pool4_shape[2], num_class], \
-                                                     strides = [1, 2, 2, 1], padding = 'SAME')
-        layers["pool4_scale"] = 0.01 * layers["pool4"]
+                                                     strides = [1, 2, 2, 1], padding = 'SAME'), parameters["b_score_up2"])
+        layers["pool4_scale"] = layers["pool4"]
         layers["score_pool4"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool4_scale"], parameters["w_score_pool4"], \
                                                strides = [1, 1, 1, 1], padding = 'SAME'), parameters["b_score_pool4"])
         layers["fuse_pool4"] = tf.add(layers["score_up2"], layers["score_pool4"])
@@ -220,7 +225,7 @@ class FCN_model:
         layers["score_up4"] = tf.nn.conv2d_transpose(layers["fuse_pool4"], parameters["w_score_up4"], \
                                                      output_shape = [pool3_shape[0], pool3_shape[1], pool3_shape[2], num_class], \
                                                      strides = [1, 2, 2, 1], padding = 'SAME')
-        layers["pool3_scale"] = 0.0001 * layers["pool3"]
+        layers["pool3_scale"] = layers["pool3"]
         layers["score_pool3"] = tf.nn.bias_add(tf.nn.conv2d(layers["pool3_scale"], parameters["w_score_pool3"], \
                                                strides = [1, 1, 1, 1], padding = 'SAME'), parameters["b_score_pool3"])
         layers["fuse_pool3"] = tf.add(layers["score_pool3"], layers["score_up4"])
@@ -303,6 +308,7 @@ class FCN_model:
             parameters = collection of extended parameters, indexed by name
         """
         parameters = {}
+        parameters["mean_rgb"] = np.zeros([3])
         parameters["w_conv1_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 3, 64, 0.1)
         parameters["b_conv1_1"] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
         parameters["w_conv1_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 64, 0.1)
@@ -352,6 +358,7 @@ class FCN_model:
         parameters["w_score_up1"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 4096, num_class, 0.1)
         parameters["b_score_up1"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
         parameters["w_score_up2"] = nn_utils.cnn_utils.weight_deconvolution_normal([4, 4], num_class, num_class, 0.1)
+        parameters["b_score_up2"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
         parameters["w_score_pool4"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 512, num_class, 0.1)
         parameters["b_score_pool4"] = nn_utils.cnn_utils.bias_convolution(num_class, 0.0)
         parameters["w_score_up4"] = nn_utils.cnn_utils.weight_deconvolution_normal([4, 4], num_class, num_class, 0.1)
@@ -494,7 +501,7 @@ class FCN_model:
                  w_score_up1 = w_score_up1, b_score_up1 = b_score_up1, w_score_up2 = w_score_up2, \
                  w_score_pool4 = w_score_pool4, b_score_pool4 = b_score_pool4,\
                  w_score_up4 = w_score_up4, w_score_pool3 = w_score_pool3, b_score_pool3 = b_score_pool3,\
-                 w_score_output = w_score_output)
+                 w_score_output = w_score_output, mean_rgb = self.parameters["mean_rgb"])
 
     def load_weights_from_npz(self, path_to_npz, sess, save_to_this = True):
         """
@@ -518,8 +525,75 @@ class FCN_model:
             parameters = self.empty_parameters(num_class)
         para_list = []
         for layer in parameters:
-            para_list.append(parameters[layer])
+            if (layer != 'mean_rgb'):
+                para_list.append(parameters[layer])
         sess.run(tf.variables_initializer(var_list=para_list))
         for layer in weight_loaded:
-            sess.run(parameters[layer].assign(weight_loaded[layer]))
+            if (layer != 'mean_rgb'):
+                sess.run(parameters[layer].assign(weight_loaded[layer]))
+        parameters["mean_rgb"][:] = weight_loaded["mean_rgb"]
+        return parameters
+
+    def load_vlfeat_pretrained_model(self, model_path, sess, save_to_this = True):
+        """
+            load vlfeat pretrained model
+            model_path : string
+            model_path = path to the pretrained model
+            sess : tensorflow.Session
+            sess = tensorflow session used for variable assignment
+            save_to_this : boolean
+            save_to_this = when this is True
+            ---------------------------------------------------
+            return parameters
+            parameters : dictionary
+            parameters = collection of parameters
+        """
+        mat_raw = scipy.io.loadmat(model_path)
+        param_raw = mat_raw['params']
+        num_class = param_raw[0, 39][1].shape[2]
+        if (save_to_this):
+            parameters = self.parameters
+        else:
+            parameters = self.empty_parameters(num_class)
+        self.mean_rgb = mat_raw['meta'][0, 0][2][0][0][2][0, 0]
+        self.parameters["mean_rgb"][:] = self.mean_rgb
+        sess.run(parameters["w_conv1_1"].assign(param_raw[0, 0][1]))
+        sess.run(parameters["b_conv1_1"].assign(param_raw[0, 1][1][:, 0]))
+        sess.run(parameters["b_conv1_2"].assign(param_raw[0, 3][1][:, 0]))
+        sess.run(parameters["w_conv2_1"].assign(param_raw[0, 4][1]))
+        sess.run(parameters["b_conv2_1"].assign(param_raw[0, 5][1][:, 0]))
+        sess.run(parameters["w_conv2_2"].assign(param_raw[0, 6][1]))
+        sess.run(parameters["b_conv2_2"].assign(param_raw[0, 7][1][:, 0]))
+        sess.run(parameters["w_conv3_1"].assign(param_raw[0, 8][1]))
+        sess.run(parameters["b_conv3_1"].assign(param_raw[0, 9][1][:, 0]))
+        sess.run(parameters["w_conv3_2"].assign(param_raw[0, 10][1]))
+        sess.run(parameters["b_conv3_2"].assign(param_raw[0, 11][1][:, 0]))
+        sess.run(parameters["w_conv3_3"].assign(param_raw[0, 12][1]))
+        sess.run(parameters["b_conv3_3"].assign(param_raw[0, 13][1][:, 0]))
+        sess.run(parameters["w_conv4_1"].assign(param_raw[0, 14][1]))
+        sess.run(parameters["b_conv4_1"].assign(param_raw[0, 15][1][:, 0]))
+        sess.run(parameters["w_conv4_2"].assign(param_raw[0, 16][1]))
+        sess.run(parameters["b_conv4_2"].assign(param_raw[0, 17][1][:, 0]))
+        sess.run(parameters["w_conv4_3"].assign(param_raw[0, 18][1]))
+        sess.run(parameters["b_conv4_3"].assign(param_raw[0, 19][1][:, 0]))
+        sess.run(parameters["w_conv5_1"].assign(param_raw[0, 20][1]))
+        sess.run(parameters["b_conv5_1"].assign(param_raw[0, 21][1][:, 0]))
+        sess.run(parameters["w_conv5_2"].assign(param_raw[0, 22][1]))
+        sess.run(parameters["b_conv5_2"].assign(param_raw[0, 23][1][:, 0]))
+        sess.run(parameters["w_conv5_3"].assign(param_raw[0, 24][1]))
+        sess.run(parameters["b_conv5_3"].assign(param_raw[0, 25][1][:, 0]))
+        sess.run(parameters["w_conv6"].assign(param_raw[0, 26][1]))
+        sess.run(parameters["b_conv6"].assign(param_raw[0, 27][1][:, 0]))
+        sess.run(parameters["w_conv7"].assign(param_raw[0, 28][1]))
+        sess.run(parameters["b_conv7"].assign(param_raw[0, 29][1][:, 0]))
+        sess.run(parameters["w_score_up1"].assign(param_raw[0, 30][1]))
+        sess.run(parameters["b_score_up1"].assign(param_raw[0, 31][1][:, 0]))
+        sess.run(parameters["w_score_up2"].assign(param_raw[0, 32][1]))
+        sess.run(parameters["b_score_up2"].assign(param_raw[0, 33][1][:, 0]))
+        sess.run(parameters["w_score_pool4"].assign(param_raw[0, 34][1]))
+        sess.run(parameters["b_score_pool4"].assign(param_raw[0, 35][1][:, 0]))
+        sess.run(parameters["w_score_up4"].assign(param_raw[0, 36][1]))
+        sess.run(parameters["w_score_pool3"].assign(param_raw[0, 37][1]))
+        sess.run(parameters["b_score_pool3"].assign(param_raw[0, 38][1][:, 0]))
+        sess.run(parameters["w_score_output"].assign(param_raw[0, 39][1]))
         return parameters
