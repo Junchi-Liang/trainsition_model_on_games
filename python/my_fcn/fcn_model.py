@@ -34,6 +34,7 @@ class FCN_model:
             vlfeat_model_path : string
             vlfeat_model_path = when this is not None, an vlfeat pretrained model in this path will be loaded
         """
+        self.num_class = num_class
         self.parameters = self.empty_parameters(num_class)
         if (vlfeat_model_path is not None):
             _ = self.load_vlfeat_pretrained_model(vlfeat_model_path, sess)
@@ -297,6 +298,30 @@ class FCN_model:
         sess.run(self.parameters["w_score_up4"].assign(self.bilinear_filter(4, 4, num_class, num_class)))
         sess.run(self.parameters["w_score_output"].assign(self.bilinear_filter(16, 16, num_class, num_class)))
 
+    def convert_VGG_npz(self, vgg_npz_path, sess):
+        """
+            load weights of VGG from npz file
+            https://github.com/tensorflow/models/tree/master/slim
+            vgg_npz_path : string
+            vgg_npz_path = path to the npz file
+            sess : tensorflow.Session
+            sess = session used for variable assignment
+        """
+        shared_layers = ['conv1_1', 'conv1_2', 'conv2_1', 'conv2_2', 'conv3_1', 'conv3_2', 'conv3_3', \
+                         'conv4_1', 'conv4_2', 'conv4_3', 'conv5_1', 'conv5_2', 'conv5_3']
+        self.parameters["mean_rgb"][:] = [123.68, 116.78, 103.94]
+        raw = np.load(vgg_npz_path)
+        for layer in shared_layers:
+            sess.run(self.parameters['w_' + layer].assign(raw['w_' + layer]))
+            sess.run(self.parameters['b_' + layer].assign(raw['b_' + layer]))
+        sess.run(self.parameters['w_conv6'].assign(raw['w_fc6']))
+        sess.run(self.parameters['b_conv6'].assign(raw['b_fc6']))
+        sess.run(self.parameters['w_conv7'].assign(raw['w_fc7']))
+        sess.run(self.parameters['b_conv7'].assign(raw['b_fc7']))
+        sess.run(self.parameters["w_score_up2"].assign(self.bilinear_filter(4, 4, self.num_class, self.num_class)))
+        sess.run(self.parameters["w_score_up4"].assign(self.bilinear_filter(4, 4, self.num_class, self.num_class)))
+        sess.run(self.parameters["w_score_output"].assign(self.bilinear_filter(16, 16, self.num_class, self.num_class)))
+
     def empty_parameters(self, num_class):
         """
             construct parameters
@@ -309,35 +334,35 @@ class FCN_model:
         """
         parameters = {}
         parameters["mean_rgb"] = np.zeros([3])
-        parameters["w_conv1_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 3, 64, 0.1)
+        parameters["w_conv1_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 3, 64, 0.0001)
         parameters["b_conv1_1"] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
-        parameters["w_conv1_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 64, 0.1)
+        parameters["w_conv1_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 64, 0.0001)
         parameters["b_conv1_2"] = nn_utils.cnn_utils.bias_convolution(64, 0.0)
-        parameters["w_conv2_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 128, 0.1)
+        parameters["w_conv2_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 64, 128, 0.0001)
         parameters["b_conv2_1"] = nn_utils.cnn_utils.bias_convolution(128, 0.0)
-        parameters["w_conv2_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 128, 0.1)
+        parameters["w_conv2_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 128, 0.0001)
         parameters["b_conv2_2"] = nn_utils.cnn_utils.bias_convolution(128, 0.0)
-        parameters["w_conv3_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 256, 0.1)
+        parameters["w_conv3_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 128, 256, 0.0001)
         parameters["b_conv3_1"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
-        parameters["w_conv3_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.1)
+        parameters["w_conv3_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.0001)
         parameters["b_conv3_2"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
-        parameters["w_conv3_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.1)
+        parameters["w_conv3_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 256, 0.0001)
         parameters["b_conv3_3"] = nn_utils.cnn_utils.bias_convolution(256, 0.0)
-        parameters["w_conv4_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 512, 0.1)
+        parameters["w_conv4_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 256, 512, 0.0001)
         parameters["b_conv4_1"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
-        parameters["w_conv4_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+        parameters["w_conv4_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.0001)
         parameters["b_conv4_2"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
-        parameters["w_conv4_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+        parameters["w_conv4_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.0001)
         parameters["b_conv4_3"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
-        parameters["w_conv5_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+        parameters["w_conv5_1"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.0001)
         parameters["b_conv5_1"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
-        parameters["w_conv5_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+        parameters["w_conv5_2"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.0001)
         parameters["b_conv5_2"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
-        parameters["w_conv5_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.1)
+        parameters["w_conv5_3"] = nn_utils.cnn_utils.weight_convolution_normal([3, 3], 512, 512, 0.0001)
         parameters["b_conv5_3"] = nn_utils.cnn_utils.bias_convolution(512, 0.0)
-        parameters["w_conv6"] = nn_utils.cnn_utils.weight_convolution_normal([7, 7], 512, 4096, 0.1)
+        parameters["w_conv6"] = nn_utils.cnn_utils.weight_convolution_normal([7, 7], 512, 4096, 0.0001)
         parameters["b_conv6"] = nn_utils.cnn_utils.bias_convolution(4096, 0.0)
-        parameters["w_conv7"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 4096, 4096, 0.1)
+        parameters["w_conv7"] = nn_utils.cnn_utils.weight_convolution_normal([1, 1], 4096, 4096, 0.0001)
         parameters["b_conv7"] = nn_utils.cnn_utils.bias_convolution(4096, 0.0)
         ext = self.extend_parameters(num_class)
         for layer in ext:
