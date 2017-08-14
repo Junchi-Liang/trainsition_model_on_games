@@ -528,7 +528,7 @@ class FCN_model:
                  w_score_up4 = w_score_up4, w_score_pool3 = w_score_pool3, b_score_pool3 = b_score_pool3,\
                  w_score_output = w_score_output, mean_rgb = self.parameters["mean_rgb"])
 
-    def load_weights_from_npz(self, path_to_npz, sess, save_to_this = True):
+    def load_weights_from_npz(self, path_to_npz, sess, save_to_this = True, fine_tune_to_new_label = False):
         """
             load weights from npz file
             path_to_npz : string
@@ -537,13 +537,19 @@ class FCN_model:
             sess = tensorflow session used for variable assignment
             save_to_this : boolean
             save_to_this = when this is true, the parameter is saved as parameter of this object
+            fine_tune_to_new_label : boolean
+            fine_tune_to_new_label = when this is True, 
+                                     class relayed layers (score layers) will not be loaded
             --------------------------------------------------
             return parameters
             parameters : dictionary
             parameters = collection of extended parameters, indexed by name
         """
         weight_loaded = np.load(path_to_npz)
-        num_class = weight_loaded['w_score_output'].shape[3]
+        if (fine_tune_to_new_label):
+            num_class = self.num_class
+        else:
+            num_class = weight_loaded['w_score_output'].shape[3]
         if (save_to_this):
             parameters = self.parameters
         else:
@@ -553,9 +559,13 @@ class FCN_model:
             if (layer != 'mean_rgb'):
                 para_list.append(parameters[layer])
         sess.run(tf.variables_initializer(var_list=para_list))
+        if (fine_tune_to_new_label):
+            layers_class_related = ['score_up1', 'score_up2', 'score_pool4', 'score_pool3', 'score_output']
         for layer in weight_loaded:
             if (layer != 'mean_rgb'):
-                sess.run(parameters[layer].assign(weight_loaded[layer]))
+                if ((not fine_tune_to_new_label) or (layer[2:] not in layers_class_related)):
+                    sess.run(parameters[layer].assign(weight_loaded[layer]))
+                else if (layer == 'w_score_up1'):
         parameters["mean_rgb"][:] = weight_loaded["mean_rgb"]
         return parameters
 
