@@ -46,3 +46,23 @@ def dense_optical_flow_to_quivers(flow):
             U[i, j] = flow[U.shape[0] - 1 - i, j, 0]
             V[i, j] = -flow[U.shape[0] - 1 - i, j, 1]
     return [X, Y, U, V]
+
+def visualize_segmentation(self, seg_output, color):
+    """
+        construct a color image according to segmentation result
+        seg_output : np.ndarray
+        seg_output = segmentation result, shape (image height, image width)
+        color : np.ndarray
+        color : color mapping, shape (class, 3), the RGB for the i-th class is color[class]
+        ------------------------------------------------------------------------------------------
+        return image
+        image : np.ndarray
+        image = color image as segmentation output, shape (image height, image width, 3)
+    """
+    image = np.zeros([seg_output.shape[0], seg_output.shape[1], 3], np.int)
+    for i in range(image.shape[0]):
+        for j in range(image.shape[1]):
+            label = seg_output[i, j]
+            image[i, j, :] = color[label, :]
+    return image
+
