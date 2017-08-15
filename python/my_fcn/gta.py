@@ -36,7 +36,7 @@ class GTA_DS:
         """
             get color mapping for cityscapesMap and camvidMap
         """
-        mapping_raw = scipy.io.loadmat(join(dataset_dir), 'scripts/mapping.mat')
+        mapping_raw = scipy.io.loadmat(join(self.dataset_dir, 'scripts/mapping.mat'))
         self.camvidMap = mapping_raw['camvidMap'] * 255
         self.cityscapesMap = mapping_raw['cityscapesMap'] * 255
 
@@ -100,7 +100,7 @@ class GTA_DS:
         else:
             return img_raw
 
-    def load_ground_truth(self, mat_path, resize = True, interp = 'nearest')
+    def load_ground_truth(self, mat_path, resize = True, interp = 'nearest'):
         """
             load a ground truth mat file
             mat_path : string
