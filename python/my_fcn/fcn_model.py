@@ -565,11 +565,11 @@ class FCN_model:
             if (layer != 'mean_rgb'):
                 if ((not fine_tune_to_new_label) or (layer[2:] not in layers_class_related)):
                     sess.run(parameters[layer].assign(weight_loaded[layer]))
-                else if (layer == 'w_score_up2'):
+                elif (layer == 'w_score_up2'):
                     sess.run(parameters[layer].assign(self.bilinear_filter(4, 4, self.num_class, self.num_class)))
-                else if (layer == 'w_score_up4'):
+                elif (layer == 'w_score_up4'):
                     sess.run(parameters[layer].assign(self.bilinear_filter(4, 4, self.num_class, self.num_class)))
-                else if (layer == 'w_score_output'):
+                elif (layer == 'w_score_output'):
                     sess.run(parameters[layer].assign(self.bilinear_filter(16, 16, self.num_class, self.num_class)))
         parameters["mean_rgb"][:] = weight_loaded["mean_rgb"]
         return parameters
