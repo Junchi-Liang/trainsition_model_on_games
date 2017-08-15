@@ -560,7 +560,7 @@ class FCN_model:
                 para_list.append(parameters[layer])
         sess.run(tf.variables_initializer(var_list=para_list))
         if (fine_tune_to_new_label):
-            layers_class_related = ['score_up1', 'score_up2', 'score_pool4', 'score_pool3', 'score_output']
+            layers_class_related = ['score_up1', 'score_up2', 'score_pool4', 'score_up4', 'score_pool3', 'score_output']
         for layer in weight_loaded:
             if (layer != 'mean_rgb'):
                 if ((not fine_tune_to_new_label) or (layer[2:] not in layers_class_related)):
