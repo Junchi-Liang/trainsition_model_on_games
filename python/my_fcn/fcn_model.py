@@ -260,14 +260,17 @@ class FCN_model:
         layers = self.build_computation_graph(self.parameters, 1, num_class, img_height = img_height, img_width = img_width, img_channel = img_channel, train_net = False)
         layers["output"] = tf.argmax(layers["score_output"], axis = 3)
         score_raw, segmentation_raw = sess.run([layers["score_output"], layers["output"]], feed_dict = {layers["image_input"] : np.reshape(image, [1, img_height, img_width, img_channel])})
-        visualization = np.zeros([img_height, img_width, 3], np.int)
-        for i in range(visualization.shape[0]):
-            for j in range(visualization.shape[1]):
-                label = segmentation_raw[0, i, j]
-                visualization[i, j, 0] = color[label][0]
-                visualization[i, j, 1] = color[label][1]
-                visualization[i, j, 2] = color[label][2]
-        return [score_raw[0], segmentation_raw[0], visualization]
+        if (color is None):
+            return [score_raw[0], segmentation_raw[0], None]
+        else:
+            visualization = np.zeros([img_height, img_width, 3], np.int)
+            for i in range(visualization.shape[0]):
+                for j in range(visualization.shape[1]):
+                    label = segmentation_raw[0, i, j]
+                    visualization[i, j, 0] = color[label][0]
+                    visualization[i, j, 1] = color[label][1]
+                    visualization[i, j, 2] = color[label][2]
+            return [score_raw[0], segmentation_raw[0], visualization]
 
     def convert_VGG(self, vgg_model, num_class, sess):
         """
